@@ -67,8 +67,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // ... save task
-            var artistName = getArtist(results.response);
-            session.send("Ok... Found the '%s' band.", artistName);
+            // var artistName = getArtist(results.response);
+            session.send("Ok... Found the '%s' band.", events.length);
         } else {
             session.send("Ok");
         }
