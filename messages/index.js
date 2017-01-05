@@ -47,7 +47,7 @@ days.forEach(function(day) {
 
 function getArtist(artistName) {
     didYouMean.returnWinningObject = true;
-    return  didYouMean(input, events, 'description');
+    return  didYouMean(artistName, events, 'description');
 }
 
 
@@ -67,8 +67,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // ... save task
-            // var artistName = getArtist(results.response);
-            session.send("Ok... Found the '%s' band.", results.response);
+            var artistName = getArtist(results.response);
+            session.send("Ok... Found the '%s' band.", artistName);
         } else {
             session.send("Ok");
         }
