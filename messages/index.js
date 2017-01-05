@@ -47,7 +47,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var foundEvent = DataLayer.getArtist(results.response);
 
             // create the card based on selection
-            var card = createCard(event, session);
+            var card = createCard(foundEvent, session);
 
             // attach the card to the reply message
             var msg = new builder.Message(session).addAttachment(card);
