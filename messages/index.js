@@ -26,6 +26,11 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' + luisAppId + '&subscription-key=' + luisAPIKey;
 
+//load json
+var DataLayer = require('./Data');
+
+
+
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
@@ -40,7 +45,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // ... save task
-            session.send("Ok... Found the '%s' band.", results.response);
+            var artistName = DataLayer.getArtist(results.response);
+            session.send("Ok... Found the "+artistName+" band.", results.response);
         } else {
             session.send("Ok");
         }
