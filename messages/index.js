@@ -4,7 +4,7 @@ natural language support to a bot.
 For a complete walkthrough of creating this type of bot see the article at
 http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 -----------------------------------------------------------------------------*/
-"use strict";
+// "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 
