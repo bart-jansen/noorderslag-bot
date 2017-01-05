@@ -18,7 +18,7 @@ days.forEach(function(day) {
 
 function getArtist(artistName) {
     didYouMean.returnWinningObject = true;
-    return  didYouMean(input, events, 'description');
+    return  didYouMean(artistName, events, 'description');
 }
 
 module.exports = getArtist;
