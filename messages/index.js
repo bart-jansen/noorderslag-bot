@@ -29,6 +29,7 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 //load json
 var DataLayer = require('./Data');
 
+console.log('yolo');
 
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
