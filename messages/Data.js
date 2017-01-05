@@ -6,7 +6,7 @@ var days = ['wednesday', 'thursday', 'friday', 'saturday'];
 
 var events = [];
 days.forEach(function(day) {
-     var dayContents = fs.readFileSync('data/'+day+'.json');
+     var dayContents = fs.readFileSync(__dirname + '/data/'+day+'.json');
      var dayJSON = JSON.parse(dayContents)[0];
 
      dayJSON.locations.forEach(function(loc) {
