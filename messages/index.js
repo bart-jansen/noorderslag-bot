@@ -27,7 +27,29 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' + luisAppId + '&subscription-key=' + luisAPIKey;
 
 //load json
-var DataLayer = require('./Data');
+// initialize
+var fs = require("fs");
+var didYouMean = require('didyoumean');
+
+var days = ['wednesday', 'thursday', 'friday', 'saturday'];
+
+var events = [];
+days.forEach(function(day) {
+     var dayContents = fs.readFileSync(__dirname + '/data/'+day+'.json');
+     var dayJSON = JSON.parse(dayContents)[0];
+
+     dayJSON.locations.forEach(function(loc) {
+        loc.events.forEach(function(event) {
+            events.push(event);
+        });
+    });
+});
+
+function getArtist(artistName) {
+    didYouMean.returnWinningObject = true;
+    return  didYouMean(input, events, 'description');
+}
+
 
 
 
@@ -45,8 +67,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // ... save task
-            var artistName = DataLayer.getArtist(results.response);
-            session.send("Ok... Found the '%s' band.", results.response);
+            var artistName = getArtist(results.response);
+            session.send("Ok... Found the '%s' band.", artistName);
         } else {
             session.send("Ok");
         }
@@ -70,4 +92,10 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
+
+
+
+
+
+
 
