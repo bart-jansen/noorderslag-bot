@@ -74,15 +74,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                     // create the card based on selection
             // var selectedCardName = 'Hero card';
-            // var card = createCard(session, eventData);
+            var card = createCard(session, eventData);
 
-            // // attach the card to the reply message
-            // var msg = new builder.Message(session).addAttachment(card);
-            // session.send(msg);
+            // attach the card to the reply message
+            var msg = new builder.Message(session).addAttachment(card);
+            session.send(msg);
 
 
 
-            session.send("Ok... Found the '%s' band.", eventData.description);
+            // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
             session.send("Ok");
         }
@@ -99,11 +99,11 @@ bot.dialog('/', intents);
 function createCard(session, eventData) {
 
     return new builder.HeroCard(session)
-        .title('BotFramework Hero Card')
-        .subtitle('Your bots — wherever your users are talking')
+        .title(eventData.description)
+        .subtitle(eventData.description + ' — ' + eventData.start_time + ' - ' + eventData.end_time)
         .text('Build and connect intelligent bots to interact with your users naturally wherever they are, from text/sms to Skype, Slack, Office 365 mail and other popular services.')
-        .images([builder.CardImage.create(session, 'https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg')])
-        .buttons([builder.CardAction.openUrl(session, 'https://docs.botframework.com/en-us/', 'Get Started')]);
+        .images([builder.CardImage.create(session, eventData.image)])
+        .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
 }
 
 
