@@ -29,9 +29,22 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
-    .matches('getData', (session) => {
-        session.send('Getting event data');
-    })
+    .matches('getData', [function (session, args, next)  {
+        var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+        if (!band) {
+            builder.Prompts.text(session, "What artist/band are you looking for?");
+        } else {
+            next({ response: band.entity });
+        }
+    },
+    function (session, results) {
+        if (results.response) {
+            // ... save task
+            session.send("Ok... Found the '%s' band.", results.response);
+        } else {
+            session.send("Ok");
+        }
+    }])
     // .matches('None', (session, args) => {
     //     session.send('Hi! This is the None intent handler. You said: \'%s\'.', session.message.text);
     // })
