@@ -43,7 +43,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // // ... save task
-            // var foundEvent = DataLayer.getArtist(results.response);
+            var foundEvent = DataLayer.getArtist(results.response);
 
             // // create the card based on selection
             // var card = createCard(foundEvent, session);
