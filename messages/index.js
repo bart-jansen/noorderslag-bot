@@ -30,21 +30,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 var fs = require("fs");
 var didYouMean = require('didyoumean');
 
-var days = ['wednesday', 'thursday', 'friday', 'saturday'];
-
-var events = [];
-days.forEach(function(day) {
-     var dayContents = fs.readFileSync(__dirname + '/data/'+day+'.json');
-     var dayJSON = JSON.parse(dayContents)[0];
-
-     dayJSON.locations.forEach(function(loc) {
-        loc.events.forEach(function(event) {
-            event.day = day.charAt(0).toUpperCase() + day.slice(1);
-            event.location = loc.heading.full;
-            events.push(event);
-        });
-    });
-});
+var eventContents = fs.readFileSync(__dirname + '/data/events.json');
+var events = JSON.parse(eventContents);
 
 function getArtist(artistName) {
     didYouMean.returnWinningObject = true;
@@ -106,8 +93,8 @@ function createCard(session, eventData) {
     return new builder.HeroCard(session)
         .title(eventData.description)
         .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
-        .text('Build and connect intelligent bots to interact with your users naturally wherever they are, from text/sms to Skype, Slack, Office 365 mail and other popular services.')
-        .images([builder.CardImage.create(session, Math.random() > .5 ? imgArr[0] : imgArr[1])])
+        .text(eventData.text)
+        .images([builder.CardImage.create(session, eventData.img)])
         .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
 }
 
