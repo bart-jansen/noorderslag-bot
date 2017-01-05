@@ -102,7 +102,7 @@ function createCard(session, eventData) {
         .title(eventData.description)
         .subtitle(eventData.description + ' — ' + eventData.start_time + ' - ' + eventData.end_time)
         .text('Build and connect intelligent bots to interact with your users naturally wherever they are, from text/sms to Skype, Slack, Office 365 mail and other popular services.')
-        .images([builder.CardImage.create(session, eventData.image)])
+        .images([builder.CardImage.create(session, 'https://static.eurosonic-noorderslag.nl/fileadmin/_processed_/csm_449270-6c4364cd9878e2750585b230b77d765b-original_e85eb907f1.jpg')])
         .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
 }
 
