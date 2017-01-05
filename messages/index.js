@@ -43,26 +43,26 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // // ... save task
-            var foundEvent = DataLayer.getArtist(results.response);
+            var eventData = DataLayer.getArtist(results.response);
 
             // // create the card based on selection
-            // var card = createCard(foundEvent, session);
+            // var card = createCard(eventData, session);
 
             // // attach the card to the reply message
             // var msg = new builder.Message(session).addAttachment(card);
             // session.send(msg);
 
                     // create the card based on selection
-            var selectedCardName = 'Hero card';
-            var card = createCard(session);
+            // var selectedCardName = 'Hero card';
+            // var card = createCard(session, eventData);
 
-            // attach the card to the reply message
-            var msg = new builder.Message(session).addAttachment(card);
-            session.send(msg);
+            // // attach the card to the reply message
+            // var msg = new builder.Message(session).addAttachment(card);
+            // session.send(msg);
 
 
 
-            // session.send("Ok... Found the '%s' band.", foundEvent.description);
+            session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
             session.send("Ok");
         }
@@ -76,7 +76,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
 bot.dialog('/', intents);
 
-function createCard(session) {
+function createCard(session, eventData) {
 
     return new builder.HeroCard(session)
         .title('BotFramework Hero Card')
