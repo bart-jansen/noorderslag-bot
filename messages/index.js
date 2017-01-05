@@ -46,7 +46,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         if (results.response) {
             // ... save task
             var artistName = DataLayer.getArtist(results.response);
-            session.send("Ok... Found the '%s' band.", artistName);
+            session.send("Ok... Found the '%s' band.", results.response);
         } else {
             session.send("Ok");
         }
