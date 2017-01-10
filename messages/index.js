@@ -85,13 +85,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
     .matches('getLocation', [function (session) {
             var options = {
-                prompt: "Where should I ship your order?",
+                prompt: "I will try to find some parties close to you! Where are you currently located?",
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
                     locationDialog.LocationRequiredFields.streetAddress |
                     locationDialog.LocationRequiredFields.locality |
-                    locationDialog.LocationRequiredFields.region |
                     locationDialog.LocationRequiredFields.postalCode |
                     locationDialog.LocationRequiredFields.country
             };
@@ -101,7 +100,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         function (session, results) {
             if (results.response) {
                 var place = results.response;
-                session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
+                // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
+                session.send("Party going on 300m from you! at  " + place);
             }
         }
     ])
