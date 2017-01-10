@@ -101,7 +101,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             if (results.response) {
                 var place = results.response;
                 // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
-                session.send("Party going on 300m from you! at  " + place);
+                session.send("Party going on 300m from you! at  " + JSON.stringify(place));
             }
         }
     ])
