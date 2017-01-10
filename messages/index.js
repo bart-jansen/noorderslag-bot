@@ -83,8 +83,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
-    .matches('getLocation', (session, args) => [
-        function (session) {
+    .matches('getLocation', [function (session) {
             var options = {
                 prompt: "Where should I ship your order?",
                 useNativeControl: true,
