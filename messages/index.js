@@ -83,6 +83,25 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
+    .matches('getTimetable', [function (session, args, next)  {
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+        var datetime = builder.EntityRecognizer.findEntity(args.entities, 'datetime');
+        if (!venue && !datetime) {
+            builder.Prompts.text(session, "What venue are you looking for?");
+        } else {
+            next({ venue: venue.entity, datetime: datetime.entity });
+        }
+    },
+    function (session, results) {
+        if (results.venue || results.datetime) {
+            // // ... save task
+            session.send('the venue is ' + results.venue + ', the time is ' + results.datetime)
+
+            // session.send("Ok... Found the '%s' band.", eventData.description);
+        } else {
+            session.send("Ok");
+        }
+    }])
     .matches('getLocation', [function (session) {
             var options = {
                 prompt: "I will try to find some parties close to you! Where are you currently located?",
@@ -101,6 +120,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             if (results.response) {
                 var place = results.response;
                 // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
+                var lat = place.geo.latitude;
+                var lng = place.geo.longitude;
+
                 session.send("Party going on 300m from you! at  " + JSON.stringify(place));
             }
         }
