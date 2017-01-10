@@ -28,14 +28,27 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 
 //load json
 var fs = require("fs");
-var didYouMean = require('didyoumean');
+var Matcher = require('did-you-mean');
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
+// add seperate artist list
+var artists = [];
+events.forEach(function(event) {
+    artists.push(event.description);
+});
+
+var m = new Matcher({values: artists,threshold: 6});
+
 function getArtist(artistName) {
-    didYouMean.returnWinningObject = true;
-    return  didYouMean(artistName, events, 'description');
+    var returnVal;
+
+    if(m.get(artistName)) {
+        returnVal = events[artists.indexOf(m.get(artistName))]
+    }
+
+    return returnVal;
 }
 
 // Main dialog with LUIS
@@ -54,22 +67,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             // // ... save task
             var eventData = getArtist(results.response);
 
-            // // create the card based on selection
-            // var card = createCard(eventData, session);
+            if(eventData) {
+                var card = createCard(session, eventData);
 
-            // // attach the card to the reply message
-            // var msg = new builder.Message(session).addAttachment(card);
-            // session.send(msg);
-
-                    // create the card based on selection
-            // var selectedCardName = 'Hero card';
-            var card = createCard(session, eventData);
-
-            // attach the card to the reply message
-            var msg = new builder.Message(session).addAttachment(card);
-            session.send(msg);
-
-
+                var msg = new builder.Message(session).addAttachment(card);
+                session.send(msg);
+            }
+            else {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+            }
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
