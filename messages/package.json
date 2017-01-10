@@ -6,6 +6,7 @@
   "dependencies": {
     "botbuilder": "^3.4.2",
     "botbuilder-azure": "0.0.1",
+    "botbuilder-location": "^1.0.2",
     "did-you-mean": "0.0.1"
   },
   "devDependencies": {

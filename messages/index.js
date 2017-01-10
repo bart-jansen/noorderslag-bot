@@ -7,6 +7,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 // "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
+var locationDialog = require('botbuilder-location');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -82,14 +83,37 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
-    // .matches('None', (session, args) => {
-    //     session.send('Hi! This is the None intent handler. You said: \'%s\'.', session.message.text);
-    // })
+    .matches('None', (session, args) => [
+        function (session) {
+            var options = {
+                prompt: "Where should I ship your order?",
+                useNativeControl: true,
+                reverseGeocode: true,
+                requiredFields:
+                    locationDialog.LocationRequiredFields.streetAddress |
+                    locationDialog.LocationRequiredFields.locality |
+                    locationDialog.LocationRequiredFields.region |
+                    locationDialog.LocationRequiredFields.postalCode |
+                    locationDialog.LocationRequiredFields.country
+            };
+
+            locationDialog.getLocation(session, options);
+        },
+        function (session, results) {
+            if (results.response) {
+                var place = results.response;
+                session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
+            }
+        }
+    ])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
 
+bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
+
 bot.dialog('/', intents);
+
 
 function createCard(session, eventData) {
 
