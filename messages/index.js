@@ -87,15 +87,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var intent = args.intent;
 
         var venue = builder.EntityRecognizer.findEntity(intent.entities, 'venue');
-        var time = builder.EntityRecognizer.resolveTime(intent.entities);
+        // var time = builder.EntityRecognizer.resolveTime(intent.entities);
 
         var data = session.dialogData.data = {
-          venue: venue ? venue.entity : null,
-          timestamp: time ? time.getTime() : null
+          venue: venue ? venue.entity : null
+          // timestamp: time ? time.getTime() : null
         };
 
         // Prompt for title
-        if (!data.venue && !data.timestamp) {
+        if (!data.venue) {
             builder.Prompts.text(session, 'What venue are you looking for?');
         } else {
             next();
