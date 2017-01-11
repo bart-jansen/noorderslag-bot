@@ -84,18 +84,36 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }])
     .matches('getTimetable', [function (session, args, next)  {
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        var datetime = builder.EntityRecognizer.findEntity(args.entities, 'datetime');
-        if (!venue && !datetime) {
-            builder.Prompts.text(session, "What venue are you looking for?");
+        var intent = args.intent;
+
+        var venue = builder.EntityRecognizer.findEntity(intent.entities, 'venue');
+        var time = builder.EntityRecognizer.resolveTime(intent.entities);
+
+        var data = session.dialogData.data = {
+          venue: venue ? venue.entity : null,
+          timestamp: time ? time.getTime() : null
+        };
+
+        // Prompt for title
+        if (!data.venue && !data.timestamp) {
+            builder.Prompts.text(session, 'What venue are you looking for?');
         } else {
-            next({ venue: venue.entity, datetime: datetime.entity });
+            next();
         }
+
+
+        // var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+        // var datetime = builder.EntityRecognizer.findEntity(args.entities, 'datetime');
+        // if (!venue && !datetime) {
+            // builder.Prompts.text(session, "What venue are you looking for?");
+        // } else {
+            // next({ venue: venue.entity, datetime: datetime.entity });
+        // }
     },
     function (session, results) {
-        if (results.venue || results.datetime) {
+        if (session.dialogData.data.venue || session.dialogData.data.datetime) {
             // // ... save task
-            session.send('the venue is ' + results.venue + ', the time is ' + results.datetime)
+            session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
