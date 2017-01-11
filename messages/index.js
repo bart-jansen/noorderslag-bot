@@ -91,8 +91,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(intent.entities);
 
         var data = session.dialogData.data = {
-          venue: venue ? venue.entity : null,
-          timestamp: time ? time : null
+          venue: venue ? venue.entity : null
+          timestamp: time ? time.entity : null
         };
 
         // Prompt for title
