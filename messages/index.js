@@ -87,11 +87,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var intent = args.intent;
 
         var venue = builder.EntityRecognizer.findEntity(intent.entities, 'venue');
+        var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         // var time = builder.EntityRecognizer.resolveTime(intent.entities);
 
         var data = session.dialogData.data = {
-          venue: venue ? venue.entity : null
-          // timestamp: time ? time.getTime() : null
+          venue: venue ? venue.entity : null,
+          datetime: datetime ? datetime.entity : null
         };
 
         // Prompt for title
@@ -111,14 +112,18 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // }
     },
     function (session, results) {
-        if (session.dialogData.data.venue || session.dialogData.data.datetime) {
-            // // ... save task
-            session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
+        session.send(JSON.stringify(session.dialogData));
+        session.send('your answer' + results.response);
 
-            // session.send("Ok... Found the '%s' band.", eventData.description);
-        } else {
-            session.send("Ok");
-        }
+
+        // if (session.dialogData.data.venue || session.dialogData.data.datetime) {
+        //     // // ... save task
+        //     session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
+
+        //     // session.send("Ok... Found the '%s' band.", eventData.description);
+        // } else {
+        //     session.send("Ok");
+        // }
     }])
     .matches('getLocation', [function (session) {
             var options = {
