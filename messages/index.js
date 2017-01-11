@@ -90,7 +90,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
-          timestamp: time ? time.getTime() : null
+          timestamp: time ? time : null
         };
 
         // Prompt for title
