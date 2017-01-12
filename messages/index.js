@@ -132,7 +132,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // }
     },
     function (session, results) {
-        // session.send(JSON.stringify(session.dialogData.data));
+        session.send(JSON.stringify(session.dialogData.data));
 
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
