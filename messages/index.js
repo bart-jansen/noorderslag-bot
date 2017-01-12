@@ -209,15 +209,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         console.log(time);
       },
       function (session, results) {
-          if (results.response) {
+          // if (results.response) {
               // var place = results.response;
               // // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
               // var lat = place.geo.latitude;
               // var lng = place.geo.longitude;
 
               // session.send("Party going on 300m from you! at  " + JSON.stringify(place));
-              session.send("The weather is very bad!");
-          }
+          session.send("The weather is very bad!");
+          // }
       }
     ])
     .onDefault((session) => {
