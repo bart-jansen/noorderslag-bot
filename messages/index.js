@@ -267,15 +267,20 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         },
         function (session, results) {
-            if (! results.response) {
+            if (!results.response) {
                 session.send('Ok');
             }
             var eventData = getArtist(results.response);
 
-            if(!eventData) {
+            if (!eventData) {
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
+
+            builder.Prompts.choice(session, "How do you want to listen?", ['Spotify', 'Youtube']);
+        },
+        function (session, results) {
+
             var band = eventData.description;
 
             request.get({
