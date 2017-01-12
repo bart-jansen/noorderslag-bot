@@ -8,6 +8,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var youtube = require("youtube-api");
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -66,6 +67,19 @@ function findEvents(searchTime, endTime) {
     });
 
     return foundEvents;
+}
+
+function getVideos(artistName, callback) {
+    youtube.search.list({
+        part: 'snippet',
+        type: 'video',
+        order: 'viewCount',
+        maxResults: 10,
+        q: artistName,
+        key: 'AIzaSyDeT1prZKXQE4dnyYDYfzeQ38ZbCskjsFw'
+    }, function(error, request, response) {
+        callback(response.body.items);
+    });
 }
 
 // Main dialog with LUIS
@@ -204,6 +218,39 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
+    .matches('getVideo', [function (session, args, next)  {
+        var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+        if (!band) {
+            builder.Prompts.text(session, "What artist/band video are you looking for?");
+        } else {
+            next({ response: band.entity });
+        }
+    },
+    function (session, results) {
+        if (results.response) {
+            // // ... save task
+            var eventData = getArtist(results.response);
+            if(eventData) {
+                getVideos(eventData.description, function(videos) {
+                    var msg = new builder.Message(session);
+                    videos.forEach(function(videoData) {
+                        var card = new builder.HeroCard(session)
+                            .title(videoData.snippet.title)
+                            .text(videoData.snippet.description)
+                            .images([builder.CardImage.create(session, videoData.snippet.thumbnails.high.url)])
+                            .buttons([builder.CardAction.openUrl(session, 'https://youtu.be/' + videoData.id.videoId, 'Play video')]);
+
+                        msg.addAttachment(card);
+                    });
+                    session.send(msg);
+                });
+            } else {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+            }
+        } else {
+            session.send("Ok");
+        }
+    }])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
