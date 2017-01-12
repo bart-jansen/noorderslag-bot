@@ -8,6 +8,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var weather = require("Openweather-Node");
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -42,6 +43,12 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+var openWeatherMapKey = process.env.OpenWeatherMapKey;
+var openWeatherCityId = process.env.OpenWeatherCityId;
+weather.setAPPID(openWeatherMapKey);
+
+var weatherInfo = { };
+
 function getArtist(artistName) {
     var returnVal;
 
@@ -66,6 +73,17 @@ function findEvents(searchTime, endTime) {
     });
 
     return foundEvents;
+}
+
+function getWeather(time) {
+  if (!time) {
+    time = new Date();
+  }
+  var dayFormat = time.format('Y-m-d');
+  if (weatherInfo[dayFormat]) {
+    return weatherInfo[dayFormat];
+  }
+  return null;
 }
 
 // Main dialog with LUIS
@@ -213,28 +231,32 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // } else {
         //     next({ response: band.entity });
         // }
+        var weather = getWeather()
+        if (weather) {
+          session.send("The weather is " + JSON.stringify(weather));
+        } else {
+          weather.location(openWeatherCityId)
+          weather.now(openWeatherCityId,function(err, aData) {
+            if(err) console.log(err);
+            else {
+              session.send("The temperature is " + weather.getDegreeTemp());
+                //you can use weather 'object' aData
+
+                /*Get the temperature in JSON object
+                * {temp :  , temp_min : , temp_max :}
+                */
+
+                // weather.getKelvinTemp(); //In kelvin
+                // weather.getDegreeTemp(); //In Degree
+                // weather.getFahrenheitTemp(); //In Fahrenheit
+
+                // /*Get the icon url of the current weather*/
+                // weather.getIconUrl();
+            }
+          })
+          // perform api call to weather API
+        }
         session.send('hallo!');
-    },
-    function (session, results) {
-      session.send('hallo 2!');
-        // if (results.response) {
-        //     // // ... save task
-        //     var eventData = getArtist(results.response);
-
-        //     if(eventData) {
-        //         var card = createCard(session, eventData);
-
-        //         var msg = new builder.Message(session).addAttachment(card);
-        //         session.send(msg);
-        //     }
-        //     else {
-        //         session.send('Sorry, I could not find the artist \'%s\'.', result.response);
-        //     }
-
-        //     // session.send("Ok... Found the '%s' band.", eventData.description);
-        // } else {
-        //     session.send("Ok");
-        // }
     }])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
