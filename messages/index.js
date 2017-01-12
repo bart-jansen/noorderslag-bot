@@ -52,6 +52,16 @@ function getArtist(artistName) {
     return returnVal;
 }
 
+function findEvents(searchTime) {
+    var foundEvents = [];
+    events.forEach(function(event) {
+        if(searchTime >= (event.start * 1000) && searchTime < (event.end*1000))
+            foundEvents.push(event)
+    });
+
+    return foundEvents;
+}
+
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
@@ -105,7 +115,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         session.send(JSON.stringify(session.dialogData.data.time));
 
         if(session.dialogData && session.dialogData.data.time) {
-            if(session.dialogData.data.time.indexOf('T00:00:00.000Z') !== -1) {
+            if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
                 session.send('full day');
             }
@@ -114,7 +124,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                 // })
                 //look for that time
-                session.send('specific');
+                var foundEvents = findEvents(session.dialogData.data.timestamp);
+                session.send('specific ' + foundEvents.length);
             }
         }
         else {
