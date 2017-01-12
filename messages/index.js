@@ -224,7 +224,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&keyword=pizza').then(function(res) {
+            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza').then(function(res) {
                 return res.json();
             }).then(function(json) {
                 session.send(JSON.stringify(json));
