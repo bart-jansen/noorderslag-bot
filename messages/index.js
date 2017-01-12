@@ -230,9 +230,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza').then(function(res) {
                 return res.json();
             }).then(function(json) {
-                
-                if(json.results) {
-                    
+                if(json.results || json.results.length > 0) {
                     var cards = [];
                     
                     json.results.forEach(function (location) {
@@ -257,13 +255,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                             session.send(reply);
                         });            
                     });
-                }
-                else {
+                } else {
                     session.send('Sorry, I could not find the any locations to eat .', result.response);
                 }
-                
-                session.send("Bedankt!");
             });           
+        } else {
+            session.send('Sorry, I could not find the any locations to eat .', result.response);
         }
     }])
     .onDefault((session) => {
