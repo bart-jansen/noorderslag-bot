@@ -43,6 +43,8 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+var foodCategory={};
+
 function getArtist(artistName) {
     var returnVal;
 
@@ -206,9 +208,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     ])
     .matches('food', [function(session, args) {
-        var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
-            prompt: "I will try to find " + foodCategory.entity + "close to you! Where are you currently located?",
+            prompt: "I will try to find a place where you can eat " + foodCategory.entity + "! Where are you now?",
             useNativeControl: true,
             reverseGeocode: true,
             requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -225,7 +227,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&keyword=pizza').then(function(res) {
+            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza').then(function(res) {
                 return res.json();
             }).then(function(json) {
                 
@@ -303,10 +305,3 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
-
-
-
-
-
-
-
