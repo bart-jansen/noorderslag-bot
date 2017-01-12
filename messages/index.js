@@ -72,7 +72,11 @@ function findEvents(searchTime, endTime) {
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('whatCanIDo', function(session, args) {
-        session.send('Hi there!<br/>My name is Sonic! I can help you find your favorite ESNS events, ask my anything ;). Some examples are:<br/>When is blaudzun playing?<br/>Who is playing near me?');
+        session.send('Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
+            'Some examples are:<br/>'+
+            '- When is blaudzun playing?<br/>' +
+            '- Who is playing near me?<br/>' +
+            '- Who is playing tomorrow at 21:00?');
     })
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
