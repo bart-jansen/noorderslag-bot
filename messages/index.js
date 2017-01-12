@@ -71,6 +71,9 @@ function findEvents(searchTime, endTime) {
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
+    .matches('whatCanIDo', function(session, args) {
+        session.send('Hi there!\nMy name is Sonic! I can help you find your favorite ESNS events, ask my anything ;). Some examples are:\nWhen is blaudzun playing?\nWho is playing near me?');
+    })
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
@@ -156,28 +159,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     .attachments(cards);
 
                 session.send(reply);
-
-
-                // session.send('looking for  ' + session.dialogData.data.timestamp);
-                // session.send('specific ' + foundEvents.length);
             }
         }
         else {
             //look for the complete timespan (maybe from now on)
             session.send('no time restriction');
         }
-
-        // session.send('your answer' + results.response);
-
-
-        // if (session.dialogData.data.venue || session.dialogData.data.datetime) {
-        //     // // ... save task
-        //     session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
-
-        //     // session.send("Ok... Found the '%s' band.", eventData.description);
-        // } else {
-        //     session.send("Ok");
-        // }
     }])
     .matches('getLocation', [function (session) {
             var options = {
