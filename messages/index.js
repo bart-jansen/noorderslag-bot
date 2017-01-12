@@ -233,6 +233,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
         forecast.get(darkSkyLatLng.split(","), function(err, weather) { // get forecast data from Dark Sky
           if(err) return console.dir(err);
+           var radarReply = new builder.Message(session)
+              .attachments([{
+                contentType: 'image/gif',
+                contentUrl: 'http://api.buienradar.nl/image/1.0/RadarMapNL?w=500&h=512'
+              }]);
+          session.send(radarReply); // off you go, weather cards!
+
           var cards = createWeatherCards(session, weather); // create the cards
           var reply = new builder.Message(session)
               .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -314,14 +321,13 @@ function createCard(session, eventData) {
 }
 
 function createWeatherCards(session, weatherData) {
-    // var degrees = weatherData.getDegreeTemp();
     var cards = [];
     cards.push(new builder.HeroCard(session)
       .title("Current weather in Groningen")
       .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
       .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
       .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
-
+      .buttons([builder.CardAction.openUrl(session, 'http://www.buienradar.nl/weer/groningen/nl/2755251', 'View details')])
     );
     for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
       if ((i+1) % 3 === 0) {
