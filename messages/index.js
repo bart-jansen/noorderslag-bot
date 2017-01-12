@@ -180,6 +180,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
+                console.log('test');
 
                 if(cards.length > 0) {
 
