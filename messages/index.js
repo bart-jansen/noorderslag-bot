@@ -231,14 +231,18 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // } else {
         //     next({ response: band.entity });
         // }
+        console.log(1);
         var weather = getWeather()
         if (weather) {
+          console.log(2);
           session.send("The weather is " + JSON.stringify(weather));
         } else {
+          console.log(3);
           weather.location(openWeatherCityId)
           weather.now(openWeatherCityId,function(err, aData) {
             if(err) console.log(err);
             else {
+              console.log(4);
               session.send("The temperature is " + weather.getDegreeTemp());
                 //you can use weather 'object' aData
 
