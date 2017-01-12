@@ -204,6 +204,22 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
+    .matches('getWeatherData', [function (session) {
+        var time = builder.EntityRecognizer.resolveTime(args.entities);
+        console.log(time);
+      },
+      function (session, results) {
+          if (results.response) {
+              // var place = results.response;
+              // // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
+              // var lat = place.geo.latitude;
+              // var lng = place.geo.longitude;
+
+              // session.send("Party going on 300m from you! at  " + JSON.stringify(place));
+              session.send("The weather is very bad!");
+          }
+      }
+    ])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
