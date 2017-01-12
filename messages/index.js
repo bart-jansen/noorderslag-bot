@@ -311,7 +311,7 @@ function createWeatherCards(session, weatherData) {
       .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
 
     );
-    for (var i = 0; i < weatherData.hourly.data.length; i++) {
+    for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
       if ((i+1) % 3 === 0) {
         var hourlyData = weatherData.hourly.data[i];
         cards.push(new builder.HeroCard(session)
