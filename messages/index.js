@@ -90,7 +90,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
-          time: time ? time : null,
+          time: time ? time.toString() : null,
           timestamp: time ? time.getTime() : null
         };
 
@@ -102,7 +102,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData));
+        session.send(JSON.stringify(session.dialogData.data.time));
 
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('T00:00:00.000Z') !== -1) {
@@ -110,6 +110,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('full day');
             }
             else {
+                events.forEach(function() {
+
+                })
                 //look for that time
                 session.send('specific');
             }
