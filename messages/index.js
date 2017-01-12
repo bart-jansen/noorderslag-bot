@@ -18,7 +18,15 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var bot = new builder.UniversalBot(connector);
+var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
+            'Some examples are:<br/>'+
+            '- When is blaudzun playing?<br/>' +
+            '- Who is playing near me?<br/>' +
+            '- Who is playing tomorrow at 21:00?';
+
+var bot = new builder.UniversalBot(connector, function (session) {
+    session.send(HELP_TEXT);
+});
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;
@@ -74,11 +82,7 @@ function findEvents(searchTime, endTime) {
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('whatCanIDo', function(session, args) {
-        session.send('Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?');
+        session.send(HELP_TEXT);
     })
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
