@@ -210,7 +210,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('food', [function(session, args) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
-            prompt: "I will try to find " + foodCategory.entity + "close to you! Where are you currently located?",
+            prompt: "I will try to find a place where you can eat " + foodCategory.entity + "! Where are you now?",
             useNativeControl: true,
             reverseGeocode: true,
             requiredFields: locationDialog.LocationRequiredFields.streetAddress |
