@@ -308,7 +308,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
 
     .onDefault((session) => {
-        session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+        request.post({
+            url: 'https://westus.api.cognitive.microsoft.com/qnamaker/v1.0/knowledgebases/' + process.env['knowledgeBaseId'] + '/generateAnswer',
+            headers: {
+                'Ocp-Apim-Subscription-Key': process.env['ocpApimSubscriptionKey'],
+                'Content-Type': 'application/json'
+            },
+            body: {
+                'question': session.message.text
+            },
+            json: true
+        }, function(error, response, body ){
+           if (error || response.statusCode != 200 || body.score < 90 ) {
+                session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+            }
+            else{
+                session.send(body.answer)
+            }
+        });
     })
     .onBegin(function (session, args, next) {
         // session.dialogData.name = args.name;
