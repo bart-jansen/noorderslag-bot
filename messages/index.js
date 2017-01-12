@@ -157,11 +157,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         };
 
         // Prompt for title
-        // if (!data.venue) {
-            // builder.Prompts.text(session, 'What venue are you looking for?');
-        // } else {
-            next();
-        // }
+        if (!data.venue) {
+            builder.Prompts.text(session, 'What venue are you looking for?');
+        } else {
+            next({ response: venue.entity });
+        }
     },
     function (session, results) {
         session.send(JSON.stringify(session.dialogData.data));
@@ -211,15 +211,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            //look for the complete timespan (maybe from now on)
-            // session.send('Looking for venue '+ session.dialogData.data.venue);
-            session.send('searching venue');
-            session.send('found x venues' + searchVenue(session.dialogData.data.venue).length);
-            session.send('Looking for venue ');
+            session.send('venue');
         }
-        // else {
-        //     session.send('cant get venue or date...');
-        // }
     }])
     .matches('getLocation', [function (session) {
             var options = {
