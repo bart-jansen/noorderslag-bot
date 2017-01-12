@@ -134,57 +134,57 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         session.send(JSON.stringify(session.dialogData.data));
 
-        // if(session.dialogData && session.dialogData.data.time) {
-        //     if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
-        //         //look for full day
-        //         session.send('full day');
+        if(session.dialogData && session.dialogData.data.time) {
+            if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
+                //look for full day
+                session.send('full day');
 
-        //         var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
+                var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
-        //         var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
+                var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
 
-        //         var cards = [];
-        //         foundEvents.forEach(function (event) {
-        //             cards.push(createCard(session, event));
-        //         });
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
 
-        //         // create reply with Carousel AttachmentLayout
-        //         var reply = new builder.Message(session)
-        //             .attachmentLayout(builder.AttachmentLayout.carousel)
-        //             .attachments(cards);
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
 
-        //         session.send(reply);
-        //     }
-        //     else {
-        //         var foundEvents = findEvents(session.dialogData.data.timestamp);
+                session.send(reply);
+            }
+            else {
+                var foundEvents = findEvents(session.dialogData.data.timestamp);
 
-        //         var cards = [];
-        //         foundEvents.forEach(function (event) {
-        //             cards.push(createCard(session, event));
-        //         });
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
 
-        //         if(cards.length > 0) {
+                if(cards.length > 0) {
 
-        //             // create reply with Carousel AttachmentLayout
-        //             var reply = new builder.Message(session)
-        //                 .attachmentLayout(builder.AttachmentLayout.carousel)
-        //                 .attachments(cards);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
 
-        //             session.send(reply);
-        //         }
-        //         else {
-        //             session.send('Unfortunately nobody is playing at that time..')
-        //         }
-        //     }
-        // }
-        // else if(session.dialogData && session.dialogData.data && session.dialogData.data.venue) {
-        //     //look for the complete timespan (maybe from now on)
-        //     // session.send('Looking for venue '+ session.dialogData.data.venue);
-        //     session.send('Looking for venue ');
-        // }
-        // else {
-        //     session.send('cant get venue or date...');
-        // }
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that time..')
+                }
+            }
+        }
+        else if(session.dialogData && session.dialogData.data && session.dialogData.data.venue) {
+            //look for the complete timespan (maybe from now on)
+            // session.send('Looking for venue '+ session.dialogData.data.venue);
+            session.send('Looking for venue ');
+        }
+        else {
+            session.send('cant get venue or date...');
+        }
     }])
     .matches('getLocation', [function (session) {
             var options = {
