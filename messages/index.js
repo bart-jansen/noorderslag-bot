@@ -171,9 +171,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 }
             }
         }
-        else {
+        else if(session.dialogData.data.venue) {
             //look for the complete timespan (maybe from now on)
-            session.send('no time restriction');
+            session.send('Looking for venue '+ session.dialogData.data.venue);
         }
     }])
     .matches('getLocation', [function (session) {
