@@ -204,9 +204,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('food', [function(session) {
-        session.send("Here's food near you");
-    }])
+    .matches('food', [function(session, args) {
+        var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        session.send("Here's" + foodCategory + "near you");
+    }]
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
