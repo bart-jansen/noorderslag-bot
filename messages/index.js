@@ -26,9 +26,9 @@ var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite E
             '- Who is playing near me?<br/>' +
             '- Who is playing tomorrow at 21:00?';
 
-var bot = new builder.UniversalBot(connector, function (session) {
-    session.send(HELP_TEXT);
-});
+var bot = new builder.UniversalBot(connector); //, function (session) {
+    // session.send(HELP_TEXT);
+// });
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;
