@@ -241,24 +241,22 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                         fetch('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256').then(function(res) {
                             return res.url;  
                         }).then(function(imageUrl) {
-                            console.log(imageUrl);
-                            
                             var card = new builder.HeroCard(session)
                                 .title(location.name)
                                 .subtitle(location.vicinity)
                                 .images([builder.CardImage.create(session, imageUrl)])
-                                .buttons([builder.CardAction.openUrl(session, 'https://microsoft.com', 'View more details')]);
-                        
-                                cards.push(card);
+                                .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr='+location.geometry.location.lat+','+location.geometry.location.lng, 'Get directions')]);
+
+                            cards.push(card);
                         }).then(function() {
                             // create reply with Carousel AttachmentLayout
-                                var reply = new builder.Message(session)
-                                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                                    .attachments(cards);
+                            var reply = new builder.Message(session)
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(cards);
 
-                                session.send(reply);
+                            session.send(reply);
                         });            
-                        });
+                    });
                 }
                 else {
                     session.send('Sorry, I could not find the any locations to eat .', result.response);
