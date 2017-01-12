@@ -30,6 +30,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 //load json
 var fs = require("fs");
 var Matcher = require('did-you-mean');
+var request = require('request');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
