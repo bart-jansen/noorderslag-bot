@@ -48,6 +48,8 @@ var events = JSON.parse(eventContents);
 
 // add seperate artist list
 var artists = [];
+var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
+
 events.forEach(function(event) {
     artists.push(event.description);
 });
@@ -78,6 +80,20 @@ function getArtist(artistName) {
     }
 
     return returnVal;
+}
+
+function searchVenue(searchString) {
+    var venueList = [];
+    venues.forEach(function(venue) {
+        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
+            // count++;
+            venueList.push(venue);
+            // console.log('found match');
+
+        }
+
+        return venueList;
+    })
 }
 
 function findEvents(searchTime, endTime) {
@@ -199,6 +215,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         else if(session.dialogData && session.dialogData.data && session.dialogData.data.venue) {
             //look for the complete timespan (maybe from now on)
             // session.send('Looking for venue '+ session.dialogData.data.venue);
+            session.send('searching venue');
+            session.send('found x venues' + searchVenue(session.dialogData.data.venue).length);
             session.send('Looking for venue ');
         }
         else {
