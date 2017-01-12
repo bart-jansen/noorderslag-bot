@@ -226,7 +226,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             // fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location=53.2193840,6.5665020&rankby=distance&keyword=pizza');
             // session.send("Here's " + foodCategory.entity + " near you");
             // session.send("https://maps.google.com?saddr=Current+Location&daddr=" + foodCategory.entity);
-            session.send(JSON.stringify(results.response))
+            session.send("Bedankt!" + JSON.stringify(results.response))
         }
     }])
     .onDefault((session) => {
