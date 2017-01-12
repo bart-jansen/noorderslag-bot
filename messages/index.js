@@ -8,6 +8,8 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var Forecast = require('forecast');
+var moment = require("moment");
 var youtube = require("youtube-api");
 
 var useEmulator = (process.env.NODE_ENV == 'development');
@@ -19,7 +21,15 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var bot = new builder.UniversalBot(connector);
+var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
+            'Some examples are:<br/>'+
+            '- When is blaudzun playing?<br/>' +
+            '- Who is playing near me?<br/>' +
+            '- Who is playing tomorrow at 21:00?';
+
+var bot = new builder.UniversalBot(connector); //, function (session) {
+    // session.send(HELP_TEXT);
+// });
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;
@@ -31,6 +41,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 //load json
 var fs = require("fs");
 var Matcher = require('did-you-mean');
+var request = require('request');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -42,6 +54,22 @@ events.forEach(function(event) {
 });
 
 var m = new Matcher({values: artists,threshold: 6});
+
+var darkSkyKey = process.env.DarkSkyKey;
+var darkSkyLatLng = process.env.DarkSkyLatLng;
+var darkSkyIconsPrefix = process.env.DarkSkyIconsPrefix;
+
+// Initialize Forecast
+var forecast = new Forecast({
+  service: 'darksky',
+  key: darkSkyKey,
+  units: 'celcius',
+  cache: true,      // Cache API requests
+  ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/
+    minutes: 15,
+    seconds: 00
+  }
+});
 
 function getArtist(artistName) {
     var returnVal;
@@ -85,6 +113,9 @@ function getVideos(artistName, callback) {
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
+    .matches('whatCanIDo', function(session, args) {
+        session.send(HELP_TEXT);
+    })
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
@@ -133,7 +164,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // }
     },
     function (session, results) {
-        // session.send(JSON.stringify(session.dialogData.data));
+        session.send(JSON.stringify(session.dialogData.data));
 
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
@@ -163,35 +194,30 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
+                console.log('test');
 
-                // create reply with Carousel AttachmentLayout
-                var reply = new builder.Message(session)
-                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                    .attachments(cards);
+                if(cards.length > 0) {
 
-                session.send(reply);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
 
-
-                // session.send('looking for  ' + session.dialogData.data.timestamp);
-                // session.send('specific ' + foundEvents.length);
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that time..')
+                }
             }
         }
-        else {
+        else if(session.dialogData && session.dialogData.data && session.dialogData.data.venue) {
             //look for the complete timespan (maybe from now on)
-            session.send('no time restriction');
+            // session.send('Looking for venue '+ session.dialogData.data.venue);
+            session.send('Looking for venue ');
         }
-
-        // session.send('your answer' + results.response);
-
-
-        // if (session.dialogData.data.venue || session.dialogData.data.datetime) {
-        //     // // ... save task
-        //     session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
-
-        //     // session.send("Ok... Found the '%s' band.", eventData.description);
-        // } else {
-        //     session.send("Ok");
-        // }
+        else {
+            session.send('cant get venue or date...');
+        }
     }])
     .matches('getLocation', [function (session) {
             var options = {
@@ -218,6 +244,67 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
+    .matches('getWeatherData', [function (session, args, next)  {
+        session.sendTyping();
+        // var time = builder.EntityRecognizer.resolveTime(args.entities);
+        forecast.get(darkSkyLatLng.split(","), function(err, weather) { // get forecast data from Dark Sky
+          if(err) return console.dir(err);
+          var cards = createWeatherCards(session, weather); // create the cards
+          var reply = new builder.Message(session)
+              .attachmentLayout(builder.AttachmentLayout.carousel)
+              .attachments(cards);
+          session.send(reply); // off you go, weather cards!
+        });
+    }])
+
+    .matches('getSong', [
+        function (session, args, next)  {
+            var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+            if (!band) {
+                builder.Prompts.text(session, "What artist/band are you looking for?");
+            } else {
+                next({ response: band.entity });
+            }
+        },
+        function (session, results) {
+            if (! results.response) {
+                session.send('Ok');
+            }
+            var eventData = getArtist(results.response);
+
+            if(!eventData) {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                return;
+            }
+            var band = eventData.description;
+
+            request.get({
+                url: 'https://api.spotify.com/v1/search',
+                qs: {
+                    q: band,
+                    type: 'artist,track'
+                }
+            },
+            function (error, response, body) {
+                if (error || response.statusCode != 200) {
+                    session.send('Sorry, there was an error.');
+                }
+                body = JSON.parse(body);
+                songSpotifyURL = body.artists.items[0].external_urls.spotify;
+                imageURL = body.artists.items[0].images[0].url;
+                var card = new builder.HeroCard(session)
+                    .title(band)
+                    .text(eventData.text)
+                    .images([builder.CardImage.create(session, imageURL)])
+                    .buttons([
+                        builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
+                    ]);
+
+                session.send(new builder.Message(session).addAttachment(card));
+            });
+        }
+    ])
+
     .matches('getVideo', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
@@ -268,6 +355,31 @@ function createCard(session, eventData) {
         .text(eventData.text)
         .images([builder.CardImage.create(session, eventData.img)])
         .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
+}
+
+function createWeatherCards(session, weatherData) {
+    // var degrees = weatherData.getDegreeTemp();
+    var cards = [];
+    cards.push(new builder.HeroCard(session)
+      .title("Current weather in Groningen")
+      .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
+      .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
+      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
+
+    );
+    for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
+      if ((i+1) % 3 === 0) {
+        var hourlyData = weatherData.hourly.data[i];
+        cards.push(new builder.HeroCard(session)
+          .title("+" + (i+1) + " hours")
+          .subtitle(hourlyData.summary + " | " + Math.round(hourlyData.temperature, 1) + "˚C")
+          .text("In " + (i+1) + " hours, the temperature will be: " + Math.round(hourlyData.temperature, 1) + "˚C (feels like: " + Math.round(hourlyData.apparentTemperature, 1) + "˚C)." )
+          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.svg')])
+
+        );
+      }
+    }
+    return cards;
 }
 
 
