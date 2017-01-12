@@ -220,6 +220,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         locationDialog.getLocation(session, options);
     },
     function(session, results) {
+
         if(results.response) {
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
@@ -227,9 +228,27 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&keyword=pizza').then(function(res) {
                 return res.json();
             }).then(function(json) {
-                session.send(JSON.stringify(json));
-            });
-            session.send("Bedankt!");
+                
+                if(json.results) {
+                    
+                    var cards = [];
+                    json.results.forEach(function (location) {
+                        cards.push(createFoodCard(session, location));
+                    });
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Sorry, I could not find the any locations to eat .', result.response);
+                }
+                
+                session.send("Bedankt!");
+            });           
         }
     }])
     .onDefault((session) => {
@@ -251,6 +270,28 @@ function createCard(session, eventData) {
         .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
 }
 
+function createFoodCard(session, location) {
+
+    var googleMapsApiKey = process.env.GoogleMapsApiKey;
+
+    var foodImage = getFoodImage('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256');
+
+    return new builder.HeroCard(session)
+        .title(location.name)
+        .subtitle(location.vicinity)
+        .images([builder.CardImage.create(session, foodImage)])
+        .buttons([builder.CardAction.openUrl(session, 'https://microsoft.com', 'View more details')]);
+}
+
+function getFoodImage(url)
+{
+    fetch(url).then(function(res) {
+        return res.json();
+    }).then(function(json){
+        console.log(json.url);
+        return json.url;  
+    });
+}
 
 if (useEmulator) {
     var restify = require('restify');
