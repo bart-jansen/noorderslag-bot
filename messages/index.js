@@ -129,7 +129,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                 var cards = [];
                 foundEvents.forEach(function (event) {
-                    cards.push(createCard(session, eventData));
+                    cards.push(createCard(session, event));
                 });
 
                 // create reply with Carousel AttachmentLayout
