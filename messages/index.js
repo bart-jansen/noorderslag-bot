@@ -8,6 +8,8 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var Forecast = require('forecast');
+var moment = require("moment");
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -51,6 +53,22 @@ events.forEach(function(event) {
 });
 
 var m = new Matcher({values: artists,threshold: 6});
+
+var darkSkyKey = process.env.DarkSkyKey;
+var darkSkyLatLng = process.env.DarkSkyLatLng;
+var darkSkyIconsPrefix = process.env.DarkSkyIconsPrefix;
+
+// Initialize Forecast
+var forecast = new Forecast({
+  service: 'darksky',
+  key: darkSkyKey,
+  units: 'celcius',
+  cache: true,      // Cache API requests
+  ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/
+    minutes: 15,
+    seconds: 00
+  }
+});
 
 function getArtist(artistName) {
     var returnVal;
@@ -211,6 +229,19 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
+    .matches('getWeatherData', [function (session, args, next)  {
+        session.sendTyping();
+        // var time = builder.EntityRecognizer.resolveTime(args.entities);
+        forecast.get(darkSkyLatLng.split(","), function(err, weather) { // get forecast data from Dark Sky
+          if(err) return console.dir(err);
+          var cards = createWeatherCards(session, weather); // create the cards
+          var reply = new builder.Message(session)
+              .attachmentLayout(builder.AttachmentLayout.carousel)
+              .attachments(cards);
+          session.send(reply); // off you go, weather cards!
+        });
+    }])
+
     .matches('getSong', [
         function (session, args, next)  {
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
@@ -258,6 +289,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             });
         }
     ])
+
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
@@ -275,6 +307,31 @@ function createCard(session, eventData) {
         .text(eventData.text)
         .images([builder.CardImage.create(session, eventData.img)])
         .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
+}
+
+function createWeatherCards(session, weatherData) {
+    // var degrees = weatherData.getDegreeTemp();
+    var cards = [];
+    cards.push(new builder.HeroCard(session)
+      .title("Current weather in Groningen")
+      .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
+      .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
+      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
+
+    );
+    for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
+      if ((i+1) % 3 === 0) {
+        var hourlyData = weatherData.hourly.data[i];
+        cards.push(new builder.HeroCard(session)
+          .title("+" + (i+1) + " hours")
+          .subtitle(hourlyData.summary + " | " + Math.round(hourlyData.temperature, 1) + "˚C")
+          .text("In " + (i+1) + " hours, the temperature will be: " + Math.round(hourlyData.temperature, 1) + "˚C (feels like: " + Math.round(hourlyData.apparentTemperature, 1) + "˚C)." )
+          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.svg')])
+
+        );
+      }
+    }
+    return cards;
 }
 
 
