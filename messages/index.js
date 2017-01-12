@@ -125,6 +125,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 // })
                 //look for that time
                 var foundEvents = findEvents(session.dialogData.data.timestamp);
+                session.send('looking for  ' + session.dialogData.data.timestamp);
                 session.send('specific ' + foundEvents.length);
             }
         }
