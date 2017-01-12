@@ -90,7 +90,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
-          timestamp: time ? time : null
+          time: time ? time : null,
+          timestamp: time ? time.getTime() : null
         };
 
         // Prompt for title
@@ -99,18 +100,22 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         } else {
             next();
         }
-
-
-        // var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(args.entities, 'datetime');
-        // if (!venue && !datetime) {
-            // builder.Prompts.text(session, "What venue are you looking for?");
-        // } else {
-            // next({ venue: venue.entity, datetime: datetime.entity });
-        // }
     },
     function (session, results) {
         session.send(JSON.stringify(session.dialogData));
+
+        if(session.dialogData.data.time) {
+            if(session.dialogData.data.time.indexOf('T00:00:00.000Z' !== -1)) {
+                //look for full day
+            }
+            else {
+                //look for that time
+            }
+        }
+        else {
+            //look for the complete timespan (maybe from now on)
+        }
+
         session.send('your answer' + results.response);
 
 
