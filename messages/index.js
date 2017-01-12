@@ -26,9 +26,7 @@ var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite E
             '- Who is playing near me?<br/>' +
             '- Who is playing tomorrow at 21:00?';
 
-var bot = new builder.UniversalBot(connector); //, function (session) {
-    // session.send(HELP_TEXT);
-// });
+var bot = new builder.UniversalBot(connector);
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;
@@ -311,6 +309,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+    })
+    .onBegin(function (session, args, next) {
+        // session.dialogData.name = args.name;
+        session.send(HELP_TEXT);
+        next();
     });
 
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
