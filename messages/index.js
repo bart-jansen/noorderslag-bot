@@ -43,6 +43,8 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+var foodCategory={};
+
 function getArtist(artistName) {
     var returnVal;
 
@@ -206,7 +208,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     ])
     .matches('food', [function(session, args) {
-        var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
             prompt: "I will try to find " + foodCategory.entity + "close to you! Where are you currently located?",
             useNativeControl: true,
@@ -262,10 +264,3 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
-
-
-
-
-
-
-
