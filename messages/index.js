@@ -207,6 +207,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('getWeatherData', [function (session) {
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         console.log(time);
+        console.log('test');
+        session.send('hallo');
       },
       function (session, results) {
           // if (results.response) {
