@@ -157,12 +157,18 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     cards.push(createCard(session, event));
                 });
 
-                // create reply with Carousel AttachmentLayout
-                var reply = new builder.Message(session)
-                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                    .attachments(cards);
+                if(cards.length > 0) {
 
-                session.send(reply);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that time..')
+                }
             }
         }
         else {
