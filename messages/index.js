@@ -8,6 +8,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var fetch = require('node-fetch');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -206,8 +207,27 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('food', [function(session, args) {
         var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        session.send("Here's " + foodCategory.entity + " near you");
-        session.send("https://maps.google.com?saddr=Current+Location&daddr="+foodCategory.entity);
+        var options = {
+            prompt: "I will try to find " + foodCategory + "close to you! Where are you currently located?",
+            useNativeControl: true,
+            reverseGeocode: true,
+            requiredFields: locationDialog.LocationRequiredFields.streetAddress |
+            locationDialog.LocationRequiredFields.locality |
+            locationDialog.LocationRequiredFields.postalCode |
+            locationDialog.LocationRequiredFields.country
+        };
+
+        locationDialog.getLocation(session, options);
+    },
+    function(session, results) {
+        if(results.response) {
+            var googleMapsApiKey = process.env.GoogleMapsApiKey;
+            // var userLocation = args.location;
+            // fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location=53.2193840,6.5665020&rankby=distance&keyword=pizza');
+            // session.send("Here's " + foodCategory.entity + " near you");
+            // session.send("https://maps.google.com?saddr=Current+Location&daddr=" + foodCategory.entity);
+            session.send("Bedankt!" + JSON.stringify(results.response))
+        }
     }])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
