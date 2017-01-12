@@ -76,11 +76,15 @@ function findEvents(searchTime, endTime) {
 }
 
 function getWeather(time) {
+  console.log('getWeather 1')
   if (!time) {
+    console.log('getWeather 2')
     time = new Date();
   }
+  console.log('getWeather 3')
   var dayFormat = time.format('Y-m-d');
   if (weatherInfo[dayFormat]) {
+    console.log('getWeather 4')
     return weatherInfo[dayFormat];
   }
   return null;
