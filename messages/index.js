@@ -104,16 +104,19 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         session.send(JSON.stringify(session.dialogData));
 
-        if(session.dialogData.data.time) {
+        if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('T00:00:00.000Z' !== -1)) {
                 //look for full day
+                session.send('full day');
             }
             else {
                 //look for that time
+                session.send('specific');
             }
         }
         else {
             //look for the complete timespan (maybe from now on)
+            session.send('no time restriction');
         }
 
         session.send('your answer' + results.response);
