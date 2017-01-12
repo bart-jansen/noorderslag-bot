@@ -32,6 +32,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' +
 //load json
 var fs = require("fs");
 var Matcher = require('did-you-mean');
+var request = require('request');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -89,6 +91,13 @@ function findEvents(searchTime, endTime) {
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
+    .matches('whatCanIDo', function(session, args) {
+        session.send('Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
+            'Some examples are:<br/>'+
+            '- When is blaudzun playing?<br/>' +
+            '- Who is playing near me?<br/>' +
+            '- Who is playing tomorrow at 21:00?');
+    })
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
@@ -168,34 +177,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     cards.push(createCard(session, event));
                 });
 
-                // create reply with Carousel AttachmentLayout
-                var reply = new builder.Message(session)
-                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                    .attachments(cards);
+                if(cards.length > 0) {
 
-                session.send(reply);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
 
-
-                // session.send('looking for  ' + session.dialogData.data.timestamp);
-                // session.send('specific ' + foundEvents.length);
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that time..')
+                }
             }
         }
-        else {
+        else if(session.dialogData.data.venue) {
             //look for the complete timespan (maybe from now on)
-            session.send('no time restriction');
+            session.send('Looking for venue '+ session.dialogData.data.venue);
         }
-
-        // session.send('your answer' + results.response);
-
-
-        // if (session.dialogData.data.venue || session.dialogData.data.datetime) {
-        //     // // ... save task
-        //     session.send('the venue is ' + session.dialogData.data.venue + ', the time is ' + session.dialogData.data.datetime)
-
-        //     // session.send("Ok... Found the '%s' band.", eventData.description);
-        // } else {
-        //     session.send("Ok");
-        // }
     }])
     .matches('getLocation', [function (session) {
             var options = {
@@ -222,7 +221,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-
     .matches('getWeatherData', [function (session, args, next)  {
         session.sendTyping();
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
@@ -235,6 +233,55 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
           session.send(reply); // off you go, weather cards!
         });
     }])
+
+    .matches('getSong', [
+        function (session, args, next)  {
+            var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+            if (!band) {
+                builder.Prompts.text(session, "What artist/band are you looking for?");
+            } else {
+                next({ response: band.entity });
+            }
+        },
+        function (session, results) {
+            if (! results.response) {
+                session.send('Ok');
+            }
+            var eventData = getArtist(results.response);
+
+            if(!eventData) {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                return;
+            }
+            var band = eventData.description;
+
+            request.get({
+                url: 'https://api.spotify.com/v1/search',
+                qs: {
+                    q: band,
+                    type: 'artist,track'
+                }
+            },
+            function (error, response, body) {
+                if (error || response.statusCode != 200) {
+                    session.send('Sorry, there was an error.');
+                }
+                body = JSON.parse(body);
+                songSpotifyURL = body.artists.items[0].external_urls.spotify;
+                imageURL = body.artists.items[0].images[0].url;
+                var card = new builder.HeroCard(session)
+                    .title(band)
+                    .text(eventData.text)
+                    .images([builder.CardImage.create(session, imageURL)])
+                    .buttons([
+                        builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
+                    ]);
+
+                session.send(new builder.Message(session).addAttachment(card));
+            });
+        }
+    ])
+
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
