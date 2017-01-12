@@ -126,8 +126,22 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 // })
                 //look for that time
                 var foundEvents = findEvents(session.dialogData.data.timestamp);
-                session.send('looking for  ' + session.dialogData.data.timestamp);
-                session.send('specific ' + foundEvents.length);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, eventData));
+                });
+
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
+
+                session.send(reply);
+
+
+                // session.send('looking for  ' + session.dialogData.data.timestamp);
+                // session.send('specific ' + foundEvents.length);
             }
         }
         else {
@@ -182,9 +196,6 @@ bot.dialog('/', intents);
 
 
 function createCard(session, eventData) {
-
-    var imgArr = ['https://static.eurosonic-noorderslag.nl/fileadmin/_processed_/csm_447975-7613877e911e099ba90ee8c7269e22d8-original_6bb5ab93eb.jpg', 'https://static.eurosonic-noorderslag.nl/fileadmin/_processed_/csm_449270-6c4364cd9878e2750585b230b77d765b-original_e85eb907f1.jpg'];
-
 
     return new builder.HeroCard(session)
         .title(eventData.description)
