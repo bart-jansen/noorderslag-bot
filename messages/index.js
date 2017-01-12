@@ -102,7 +102,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData));
+        // session.send(JSON.stringify(session.dialogData));
 
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('T00:00:00.000Z' !== -1)) {
@@ -119,7 +119,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send('no time restriction');
         }
 
-        session.send('your answer' + results.response);
+        // session.send('your answer' + results.response);
 
 
         // if (session.dialogData.data.venue || session.dialogData.data.datetime) {
