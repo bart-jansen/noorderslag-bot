@@ -206,7 +206,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('food', [function(session, args) {
         var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        session.send("Here's" + foodCategory.entity + "near you");
+        session.send("Here's " + foodCategory.entity + " near you");
+        session.send("https://maps.google.com?saddr=Current+Location&daddr="+foodCategory.entity);
     }])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
