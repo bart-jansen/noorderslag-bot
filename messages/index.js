@@ -208,7 +208,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('food', [function(session, args) {
         var foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
-            prompt: "I will try to find " + foodCategory + "close to you! Where are you currently located?",
+            prompt: "I will try to find " + foodCategory.entity + "close to you! Where are you currently located?",
             useNativeControl: true,
             reverseGeocode: true,
             requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -222,11 +222,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function(session, results) {
         if(results.response) {
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
-            // var userLocation = args.location;
-            // fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location=53.2193840,6.5665020&rankby=distance&keyword=pizza');
-            // session.send("Here's " + foodCategory.entity + " near you");
-            // session.send("https://maps.google.com?saddr=Current+Location&daddr=" + foodCategory.entity);
-            session.send("Bedankt!" + JSON.stringify(results.response))
+            var lng = results.response['geo']['longitude'];
+            var lat = results.response['geo']['latitude'];
+            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&keyword=pizza').then(function(res) {
+                return res.json();
+            }).then(function(json) {
+                session.send(JSON.stringify(json));
+            });
+            session.send("Bedankt!");
         }
     }])
     .onDefault((session) => {
