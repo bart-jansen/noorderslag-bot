@@ -276,23 +276,22 @@ function createFoodCard(session, location) {
 
     var googleMapsApiKey = process.env.GoogleMapsApiKey;
 
-    var foodImage = getFoodImage('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256');
-
-    return new builder.HeroCard(session)
-        .title(location.name)
-        .subtitle(location.vicinity)
-        .images([builder.CardImage.create(session, foodImage)])
-        .buttons([builder.CardAction.openUrl(session, 'https://microsoft.com', 'View more details')]);
+    getFoodImage('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256').then(function(imageUrl){
+        
+        console.log(imageUrl);
+        return new builder.HeroCard(session)
+            .title(location.name)
+            .subtitle(location.vicinity)
+            .images([builder.CardImage.create(session, imageUrl)])
+            .buttons([builder.CardAction.openUrl(session, 'https://microsoft.com', 'View more details')]);
+    });
 }
 
 function getFoodImage(url)
 {
     fetch(url).then(function(res) {
-        return res.json();
-    }).then(function(json){
-        console.log(json.url);
-        return json.url;  
-    });
+        return res.url;  
+    })
 }
 
 if (useEmulator) {
