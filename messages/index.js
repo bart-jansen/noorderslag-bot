@@ -204,24 +204,38 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('getWeatherData', [function (session) {
-        var time = builder.EntityRecognizer.resolveTime(args.entities);
-        console.log(time);
-        console.log('test');
-        session.send('hallo');
-      },
-      function (session, results) {
-          // if (results.response) {
-              // var place = results.response;
-              // // session.send("Thanks, I will ship to " + locationDialog.getFormattedAddressFromPlace(place, ", "));
-              // var lat = place.geo.latitude;
-              // var lng = place.geo.longitude;
 
-              // session.send("Party going on 300m from you! at  " + JSON.stringify(place));
-          session.send("The weather is very bad!");
-          // }
-      }
-    ])
+    .matches('getWeatherData', [function (session, args, next)  {
+        // var time = builder.EntityRecognizer.resolveTime(args.entities);
+        // var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+        // if (!band) {
+        //     builder.Prompts.text(session, "What artist/band are you looking for?");
+        // } else {
+        //     next({ response: band.entity });
+        // }
+        session.send('hallo!');
+    },
+    function (session, results) {
+      session.send('hallo 2!');
+        // if (results.response) {
+        //     // // ... save task
+        //     var eventData = getArtist(results.response);
+
+        //     if(eventData) {
+        //         var card = createCard(session, eventData);
+
+        //         var msg = new builder.Message(session).addAttachment(card);
+        //         session.send(msg);
+        //     }
+        //     else {
+        //         session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+        //     }
+
+        //     // session.send("Ok... Found the '%s' band.", eventData.description);
+        // } else {
+        //     session.send("Ok");
+        // }
+    }])
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'.', session.message.text);
     });
