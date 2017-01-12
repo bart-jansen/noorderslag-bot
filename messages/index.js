@@ -112,11 +112,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         };
 
         // Prompt for title
-        if (!data.venue) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
-        } else {
+        // if (!data.venue) {
+            // builder.Prompts.text(session, 'What venue are you looking for?');
+        // } else {
             next();
-        }
+        // }
     },
     function (session, results) {
         // session.send(JSON.stringify(session.dialogData.data));
