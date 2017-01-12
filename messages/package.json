@@ -8,7 +8,8 @@
     "botbuilder-azure": "0.0.1",
     "botbuilder-location": "^1.0.2",
     "did-you-mean": "0.0.1",
-    "openweather-node": "0.0.4"
+    "forecast": "^0.3.2",
+    "moment": "^2.17.1"
   },
   "devDependencies": {
     "restify": "^4.1.1"
