@@ -110,9 +110,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('full day');
             }
             else {
-                events.forEach(function() {
+                // events.forEach(function() {
 
-                })
+                // })
                 //look for that time
                 session.send('specific');
             }
