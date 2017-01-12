@@ -102,10 +102,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        // session.send(JSON.stringify(session.dialogData));
+        session.send(JSON.stringify(session.dialogData));
 
         if(session.dialogData && session.dialogData.data.time) {
-            if(session.dialogData.data.time.indexOf('T00:00:00.000Z' !== -1)) {
+            if(session.dialogData.data.time.indexOf('T00:00:00.000Z') !== -1) {
                 //look for full day
                 session.send('full day');
             }
