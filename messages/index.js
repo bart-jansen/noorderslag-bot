@@ -179,7 +179,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
         else if(session.dialogData.data.venue) {
             //look for the complete timespan (maybe from now on)
-            session.send('Looking for venue '+ session.dialogData.data.venue);
+            // session.send('Looking for venue '+ session.dialogData.data.venue);
+            session.send('Looking for venue ');
         }
     }])
     .matches('getLocation', [function (session) {
