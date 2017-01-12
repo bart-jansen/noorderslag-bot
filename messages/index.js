@@ -52,11 +52,17 @@ function getArtist(artistName) {
     return returnVal;
 }
 
-function findEvents(searchTime) {
+function findEvents(searchTime, endTime) {
     var foundEvents = [];
     events.forEach(function(event) {
-        if(searchTime >= (event.start * 1000) && searchTime < (event.end*1000))
-            foundEvents.push(event)
+        if(endTime) {
+            if((event.start * 1000) > searchTime && (event.end*1000) < endTime)
+                foundEvents.push(event);
+        }
+        else {
+            if(searchTime >= (event.start * 1000) && searchTime < (event.end*1000))
+                foundEvents.push(event);
+        }
     });
 
     return foundEvents;
@@ -113,18 +119,30 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData.data));
+        // session.send(JSON.stringify(session.dialogData.data));
 
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
                 session.send('full day');
+
+                var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
+
+                var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
+
+                session.send(reply);
             }
             else {
-                // events.forEach(function() {
-
-                // })
-                //look for that time
                 var foundEvents = findEvents(session.dialogData.data.timestamp);
 
                 var cards = [];
