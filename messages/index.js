@@ -408,12 +408,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
 
+            session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory);
+
             request.get({
                 url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
-                    session.send('testOops! That place I knew is gone...');
+                    session.send('Oops! That place I knew is gone...');
                 } else {
                     json = JSON.parse(body);
                     if (json.results || json.results.length > 0) {
@@ -457,7 +459,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                             session.send(reply);
                         } else {
-                            session.send('Oop2s! That place I knew is gone...');
+                            session.send('Oops! That place I knew is gone...');
                         }
                     } else {
                         session.send('Oops! That place I knew is gone...');
