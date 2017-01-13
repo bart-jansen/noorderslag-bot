@@ -288,6 +288,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }, function (session, results) {
         if (results.response) {
             session.send(results.response);
+            console.log('test');
             var foundEvents = functions.searchEventByVenue(results.response.entity);
 
             var cards = [];
