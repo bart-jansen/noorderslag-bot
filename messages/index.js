@@ -166,6 +166,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
+        session.send(results.response);
+
         session.send(JSON.stringify(session.dialogData.data));
 
         if(session.dialogData && session.dialogData.data.time) {
