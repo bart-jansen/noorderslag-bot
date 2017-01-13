@@ -13,6 +13,7 @@ var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
 var async = require("async");
+var _ = require('lodash');
 
 var request = require('request');
 var syncRequest = require('sync-request');
@@ -26,8 +27,7 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic Noorderslag!<br/>" +
     '<br/>Some examples are:<br/>'+
     '- When is Blaudzun playing?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
@@ -164,7 +164,7 @@ function findEvents(searchTime, endTime) {
                 foundEvents.push(event);
         }
     });
-
+    foundEvents = _.uniqWith(foundEvents, _.isEqual);
     return foundEvents;
 }
 
