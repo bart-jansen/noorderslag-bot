@@ -405,7 +405,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
               useNativeControl: true,
               reverseGeocode: true,
               requiredFields:
-git st              locationDialog.LocationRequiredFields.locality |
+              locationDialog.LocationRequiredFields.locality |
               locationDialog.LocationRequiredFields.postalCode |
               locationDialog.LocationRequiredFields.country
           };
