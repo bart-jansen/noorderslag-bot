@@ -208,6 +208,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var venueSearch = searchVenue(session.dialogData.data.venue.toString());
             session.send(JSON.stringify(venueSearch));
 
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
+            }
+
         }
     }])
     .matches('getLocation', [function (session) {
