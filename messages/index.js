@@ -236,15 +236,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send(moment(time).isValid() ? 'valid dateje' : 'not valid date');
-
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? (moment(time).isValid() ? time.toString() : (new Date()).toString()) : null,
           timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
-
-        session.send(JSON.stringify(data));
 
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
