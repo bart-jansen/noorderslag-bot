@@ -235,7 +235,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             else {
                 session.send('cant find venue...');
             }
-
         }
     }, function (session, results) {
         if (results.response) {
@@ -341,6 +340,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
 
     .onDefault((session) => {
+        session.sendTyping();
         request.post({
             url: 'https://westus.api.cognitive.microsoft.com/qnamaker/v1.0/knowledgebases/' + process.env['knowledgeBaseId'] + '/generateAnswer',
             headers: {
@@ -352,7 +352,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             },
             json: true
         }, function(error, response, body ){
-           if (error || response.statusCode != 200 || body.score < 90 ) {
+           if (error || response.statusCode != 200 || body.score < 70 ) {
                 var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
                 'Sure. Please talk again and try to understand me ;)',
                 "I'm still broke from last night. Please, can you be more specific?",
