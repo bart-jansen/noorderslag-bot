@@ -24,6 +24,8 @@ module.exports = function (lineup, findEvents, createCard) {
     });
     if (!time) {
       if (foundActs.length > 0) {
+        foundActs = _.slice(foundActs, 0, 10);
+
         var cards = createGenreCards(session, foundActs); // create the cards
         var reply = new builder.Message(session)
             .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -53,6 +55,7 @@ module.exports = function (lineup, findEvents, createCard) {
       foundEvents = _.sortBy(foundEvents, (event) => {
         return event.start;
       });
+      foundEvents = _.slice(foundEvents, 0, 10);
       var cards = [];
       foundEvents.forEach(function (event) {
           cards.push(createCard(session, event));
