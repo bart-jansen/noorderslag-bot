@@ -165,7 +165,9 @@ function findEvents(searchTime, endTime) {
                 foundEvents.push(event);
         }
     });
-    foundEvents = _.uniqWith(foundEvents, _.isEqual);
+    foundEvents = _.uniqWith(foundEvents, function (obj1, obj2) {
+      return (obj1.description === obj2.description && obj1.start === obj2.start && obj1.end === obj2.end);
+    });
     return foundEvents;
 }
 
