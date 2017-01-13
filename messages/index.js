@@ -297,8 +297,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
-                session.send('found ' + venueSearch[0]);
-
                 var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
                 var cards = [];
@@ -329,8 +327,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }, function (session, results) {
         if (results.response) {
-            session.send(results.response);
-            console.log('test');
             var foundEvents = functions.searchEventByVenue(results.response.entity);
 
             var cards = [];
@@ -436,14 +432,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                         }
                                     );
                                     if (response.statusCode != 302) {
-                                        console.log('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                        session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
                                     } else {
                                         var card = new builder.HeroCard(session)
                                             .title(location.name)
                                             .subtitle(location.vicinity)
                                             .images([builder.CardImage.create(session, response.headers.location)])
                                             .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-                                        console.log('push card');
+                                        session.send('push card');
                                         cards.push(card);
                                     }
                                 }
