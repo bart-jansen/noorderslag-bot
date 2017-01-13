@@ -124,6 +124,7 @@ not nice, no priority at this moment to do it otherwise
 */
 
 var foodCategory={};
+var category;
 var darkSkyKey = process.env.DarkSkyKey;
 var darkSkyLatLng = process.env.DarkSkyLatLng;
 var darkSkyIconsPrefix = process.env.DarkSkyIconsPrefix;
