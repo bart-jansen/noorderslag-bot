@@ -378,6 +378,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('getFood', [function(session, args, next) {
         category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        foodCategory = category
         if(!category){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
@@ -385,8 +386,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         }
     },
-      function(session, results){
-          foodCategory = results.response;
+    function(session, results){
+        if(!foodCategory)
+            foodCategory = results.response;
 
           console.log(foodCategory);
           var options = {
