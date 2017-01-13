@@ -147,6 +147,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
     .matches('getTimetable', function(session, args) {
         session.send('getting timetable');
+        console.log('test');
     })
     // .matches('getTimetable', [function (session, args, next)  {
     //     session.send('test');
