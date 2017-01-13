@@ -206,23 +206,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         else {
             session.send('venue search' + session.dialogData.data.venue);
             var venueSearch = searchVenue(session.dialogData.data.venue.toString());
-            session.send('yolo');
-            if(venueSearch) {
-                session.send(venueSearch.length);
-            }
-            else {
-                session.send('error');
-            }
+            session.send(JSON.stringify(venueSearch));
 
-            if(venueSearch.length === 1) {
-                session.send('found 1 matching venue!' +  JSON.stringify(venueSearch))
-            }
-            else if(venueSearch.length > 1) {
-                session.send('found multiple venues' +  JSON.stringify(venueSearch))
-            }
-            else {
-                session.send('cant find venue');
-            }
         }
     }])
     .matches('getLocation', [function (session) {
