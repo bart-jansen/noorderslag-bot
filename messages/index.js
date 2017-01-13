@@ -519,12 +519,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(body.answer)
             }
         });
-    })
-    .onBegin(function (session, args, next) {
-        // session.dialogData.name = args.name;
-        session.send(HELP_TEXT);
-        next();
     });
+    // .onBegin(function (session, args, next) {
+    //     // session.dialogData.name = args.name;
+    //     session.send(HELP_TEXT);
+    //     next();
+    // });
 
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
 
