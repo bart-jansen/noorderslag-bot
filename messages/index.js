@@ -408,10 +408,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
 
-            session.send(JSON.stringify(foodCategory));
-
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory.entity,
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
