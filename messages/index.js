@@ -11,6 +11,8 @@ var locationDialog = require('ivo-botbuilder-location');
 var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
+var youtube = require("youtube-api");
+var async = require("async");
 
 var request = require('request');
 var syncRequest = require('sync-request');
@@ -24,11 +26,12 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?';
+
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+    'Try me, I dare you. Some examples are:<br/>'+
+    '- When is blaudzun playing?<br/>' +
+    '- Who is playing near me?<br/>' +
+    '- Who is playing tomorrow at 21:00?';
 
 var bot = new builder.UniversalBot(connector);
 
@@ -44,6 +47,8 @@ var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
 
+var functions = require('./functions');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -57,6 +62,11 @@ events.forEach(function(event) {
 });
 
 var m = new Matcher({values: artists,threshold: 6});
+
+/*
+foodCategory global
+not nice, no priority at this moment to do it otherwise
+*/
 
 var foodCategory={};
 var darkSkyKey = process.env.DarkSkyKey;
@@ -75,6 +85,8 @@ var forecast = new Forecast({
   }
 });
 
+var youtubeApiKey = process.env.YoutubeApiKey;
+
 function getArtist(artistName) {
     var returnVal;
 
@@ -83,20 +95,6 @@ function getArtist(artistName) {
     }
 
     return returnVal;
-}
-
-function searchVenue(searchString) {
-    var venueList = [];
-    venues.forEach(function(venue) {
-        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            // count++;
-            venueList.push(venue);
-            // console.log('found match');
-
-        }
-
-        return venueList;
-    })
 }
 
 function findEvents(searchTime, endTime) {
@@ -113,6 +111,33 @@ function findEvents(searchTime, endTime) {
     });
 
     return foundEvents;
+}
+
+function getSong(band, callback) {
+    request.get({
+        url: 'https://api.spotify.com/v1/search',
+        qs: {
+            q: band,
+            type: 'artist,track'
+        }
+    },
+    function (error, response, body) {
+        body = JSON.parse(body);
+        callback(error, body);
+    });
+}
+
+function getVideos(artistName, callback) {
+    youtube.search.list({
+        part: 'snippet',
+        type: 'video',
+        order: 'viewCount',
+        maxResults: 3,
+        q: artistName,
+        key: youtubeApiKey
+    }, function(error, request, response) {
+        callback(error, response.body.items);
+    });
 }
 
 // Main dialog with LUIS
@@ -149,32 +174,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
+
     .matches('getTimetable', [function (session, args, next)  {
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        session.send('testing');
-
-        // Prompt for title
-        if (!data.venue && !data.time) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
         } else {
             next({ response: venue.entity });
         }
     },
     function (session, results) {
-        session.send(results.response);
-
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -203,7 +220,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
-                console.log('test');
 
                 if(cards.length > 0) {
 
@@ -215,12 +231,49 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    // session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time..')
                 }
             }
         }
         else {
-            // session.send('venue');
+            session.send('venue search' + session.dialogData.data.venue);
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
+            session.send(JSON.stringify(venueSearch));
+
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
+
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                if(cards.length > 0) {
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue..')
+                }
+
+            }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
+            }
+            else {
+                session.send('cant find venue...');
+            }
+
         }
     }])
     .matches('getLocation', [function (session) {
@@ -250,8 +303,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){
-            builder.Prompts.text(session, "What kind of food are you looking for?");
+        if(!foodCategory){NODE_ENV=development
+            builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
 
@@ -259,7 +312,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
       function(session, results){
           var options = {
-              prompt: "I will try to find a place where you can eat " + results.response + "! Where are you now?",
+              prompt: capitalize(results.response) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
               requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -267,57 +320,73 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
               locationDialog.LocationRequiredFields.postalCode |
               locationDialog.LocationRequiredFields.country
           };
-          locationDialog.getLocation(session, options).on;
+          locationDialog.getLocation(session, options);
       },
     function(session, results) {
 
         if(results.response) {
+            session.sendTyping();
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-
+            var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza',
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword='+dumFoodCategory.entity,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
-                    session.send('Sorry, I could not find the any locations to eat .', results.response);
-                }
-                json = JSON.parse(body);
-                if(json.results || json.results.length > 0) {
-                    var cards = [];
-                    json.results.forEach(function (location, i) {
-                        if(location.photos != undefined && location.photos.length > 0) {
-                            var response = syncRequest(
-                                'GET',
-                                'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
-                                {
-                                    "followRedirects": false
-                                }
-                            );
-                            if (error || response.statusCode != 200) {
-                                session.send('Sorry, I could not find the any locations to eat .', results.response);
-                            }
-                            var card = new builder.HeroCard(session)
-                                .title(location.name)
-                                .subtitle(location.vicinity)
-                                .images([builder.CardImage.create(session, response.headers.location)])
-                                .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
-                            console.log('push card');
-                            cards.push(card);
-                        }
-                    });
-                    var reply = new builder.Message(session)
-                        .attachmentLayout(builder.AttachmentLayout.carousel)
-                        .attachments(cards);
-
-                    session.send(reply);
+                    session.send('Oops! That place I knew is gone...');
                 } else {
-                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                    json = JSON.parse(body);
+                    if (json.results || json.results.length > 0) {
+                        var cards = [];
+
+                        try {
+                            for (var i = 0; i < json.results.length; i++) {
+                                var location = json.results[i]
+                                if (cards.length >= 5) {
+                                    throw BreakException;
+                                }
+                                if (location.photos != undefined && location.photos.length > 0) {
+                                    var response = syncRequest(
+                                        'GET',
+                                        'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
+                                        {
+                                            "followRedirects": false
+                                        }
+                                    );
+                                    if (response.statusCode != 302) {
+                                        console.log('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                    } else {
+                                        var card = new builder.HeroCard(session)
+                                            .title(location.name)
+                                            .subtitle(location.vicinity)
+                                            .images([builder.CardImage.create(session, response.headers.location)])
+                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
+                                        console.log('push card');
+                                        cards.push(card);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                        } //just for ending the loop early
+
+                        if (cards.length != 0) {
+                            var reply = new builder.Message(session)
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(cards);
+
+                            session.send(reply);
+                        } else {
+                            session.send('Oops! That place I knew is gone...');
+                        }
+                    } else {
+                        session.send('Oops! That place I knew is gone...');
+                    }
                 }
             });
         } else {
-            session.send('Sorry, I could not find the any locations to eat .', results.response);
+            session.send('Oops! That place I knew is gone...');
         }
     }])
     .matches('getWeatherData', [function (session, args, next)  {
@@ -350,41 +419,59 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         },
         function (session, results) {
-            if (! results.response) {
+            if (!results.response) {
                 session.send('Ok');
             }
             var eventData = getArtist(results.response);
 
-            if(!eventData) {
+            if (!eventData) {
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
+
             var band = eventData.description;
 
-            request.get({
-                url: 'https://api.spotify.com/v1/search',
-                qs: {
-                    q: band,
-                    type: 'artist,track'
-                }
-            },
-            function (error, response, body) {
-                if (error || response.statusCode != 200) {
-                    session.send('Sorry, there was an error.');
-                }
-                body = JSON.parse(body);
-                songSpotifyURL = body.artists.items[0].external_urls.spotify;
-                imageURL = body.artists.items[0].images[0].url;
-                var card = new builder.HeroCard(session)
-                    .title(band)
-                    .text(eventData.text)
-                    .images([builder.CardImage.create(session, imageURL)])
-                    .buttons([
-                        builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
-                    ]);
+            async.parallel([
+                function(callback) {
+                    getSong(band, function(error, songData) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
+                        var card = createSongCard(session, songData, eventData);
+                        callback(null, card);
+                    });
+                },
+                function(callback) {
+                    getVideos(eventData.description, function(error, videos) {
+                        if(error) {
+                            callback(error);
+                            return;
+                        }
+                        var msg = new builder.Message(session);
+                        var cards = [];
+                        videos.forEach(function(videoData) {
+                            var card = createVideoCard(session, videoData);
+                            cards.push(card);
+                        });
+                        callback(null, cards);
+                    });
+                }],
+                function(error, results) {
+                    if (error) {
+                        session.send('Sorry, there was an error.');
+                        return;
+                    }
 
-                session.send(new builder.Message(session).addAttachment(card));
-            });
+                    var cards = [];
+                    cards.push(results[0]);
+                    cards = cards.concat(results[1]);
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+                    session.send(reply);
+                }
+            );
         }
     ])
 
@@ -401,7 +488,17 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             json: true
         }, function(error, response, body ){
            if (error || response.statusCode != 200 || body.score < 90 ) {
-                session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
+                'Sure. Please talk again and try to understand me ;)',
+                "I'm still broke from last night. Please, can you be more specific?",
+                "I am not as smart as you, what do you mean?",
+                "You are amazing! But I am afraid I don't know what you mean.",
+                "I don't know. Can I help you with anything else?",
+                "This is above my paygrade, topsecret",
+                "I wanna help, but I don't know how"]
+
+                session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
+                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
             }
             else{
                 session.send(body.answer)
@@ -452,6 +549,29 @@ function createWeatherCards(session, weatherData) {
     }
     return cards;
 }
+
+function createSongCard(session, songData, eventData) {
+    var songSpotifyURL = songData.artists.items[0].external_urls.spotify;
+    var imageURL = songData.artists.items[0].images[0].url;
+    var card = new builder.HeroCard(session)
+        .title(eventData.description)
+        .text(eventData.text)
+        .images([builder.CardImage.create(session, imageURL)])
+        .buttons([
+            builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
+        ]);
+    return card;
+}
+
+function createVideoCard(session, videoData) {
+    var card = new builder.HeroCard(session)
+        .title(videoData.snippet.title)
+        .text(videoData.snippet.description)
+        .images([builder.CardImage.create(session, videoData.snippet.thumbnails.high.url)])
+        .buttons([builder.CardAction.openUrl(session, 'https://youtu.be/' + videoData.id.videoId, 'Play video')]);
+    return card;
+}
+
 if (useEmulator) {
     var restify = require('restify');
     var server = restify.createServer();
@@ -461,4 +581,12 @@ if (useEmulator) {
     server.post('/api/messages', connector.listen());
 } else {
     module.exports = { default: connector.listen() }
+}
+
+function capitalize(str) {
+  if (str.length) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
+  } else {
+    return '';
+  }
 }
