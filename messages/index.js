@@ -461,7 +461,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var eventData = getArtist(results.response);
 
             if (!eventData) {
-                session.send('Oops, I can\'t find \'%s\'.', result.response);
+                session.send('Oops, I can\'t find \'%s\'.', results.response);
                 return;
             }
 
