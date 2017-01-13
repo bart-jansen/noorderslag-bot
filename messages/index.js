@@ -389,17 +389,20 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     ])
     .matches('getFood', [function(session, args, next) {
-        foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){
+        category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        if(!category){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
-            next({response: foodCategory.entity })
+            next({response: category.entity })
 
         }
     },
       function(session, results){
+          foodCategory = results.response;
+
+          console.log(foodCategory);
           var options = {
-              prompt: capitalize(results.response) + "! I know a great place! Where are you now?",
+              prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
               requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -416,9 +419,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-            var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+dumFoodCategory.entity,
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
