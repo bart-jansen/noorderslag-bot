@@ -7,7 +7,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 // "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
-var locationDialog = require('botbuilder-location');
+var locationDialog = require('ivo-botbuilder-location');
 var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
@@ -267,7 +267,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
               locationDialog.LocationRequiredFields.postalCode |
               locationDialog.LocationRequiredFields.country
           };
-          locationDialog.getLocation(session, options);
+          locationDialog.getLocation(session, options).on;
       },
     function(session, results) {
 
@@ -307,7 +307,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                             cards.push(card);
                         }
                     });
-                    console.log(cards)
                     var reply = new builder.Message(session)
                         .attachmentLayout(builder.AttachmentLayout.carousel)
                         .attachments(cards);
