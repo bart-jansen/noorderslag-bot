@@ -418,33 +418,33 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                         var cards = [];
 
 
-                            for (var i = 0; i < json.results.length; i++) {
-                                var location = json.results[i]
-                                // if (cards.length >= 5) {
-                                //     throw BreakException;
-                                // }
-                                if (location.photos != undefined && location.photos.length > 0) {
-                                    var response = syncRequest(
-                                        'GET',
-                                        'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
-                                        {
-                                            "followRedirects": false
-                                        }
-                                    );
-                                    if (response.statusCode != 302) {
-                                        session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
-                                    } else {
-                                        var card = new builder.HeroCard(session)
-                                            .title(location.name)
-                                            .subtitle(location.vicinity)
-                                            .images([builder.CardImage.create(session, response.headers.location)])
-                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-                                        session.send('push card');
-                                        cards.push(card);
+                        for (var i = 0; i < Math.min(json.results.length, 5); i++) {
+                            var location = json.results[i]
+                            if (location.photos != undefined && location.photos.length > 0) {
+                                var response = syncRequest(
+                                    'GET',
+                                    'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
+                                    {
+                                        "followRedirects": false
                                     }
+                                );
+                                if (response.statusCode != 302) {
+                                    session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                } else {
+                                    session.send('trying to create card');
+
+                                    var card = new builder.HeroCard(session)
+                                        .title(location.name)
+                                        .subtitle(location.vicinity)
+                                        .images([builder.CardImage.create(session, response.headers.location)])
+                                        .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
+                                    session.send('push card');
+                                    cards.push(card);
                                 }
                             }
+                        }
 
+                        session.send('cards length ' + cards.length);
 
                         if (cards.length != 0) {
                             var reply = new builder.Message(session)
