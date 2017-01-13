@@ -157,7 +157,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         };
 
         // Prompt for title
-        if (!data.venue) {
+        if (!data.venue && !data.time) {
             builder.Prompts.text(session, 'What venue are you looking for?');
         } else {
             next({ response: venue.entity });
