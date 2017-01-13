@@ -29,6 +29,6 @@ function searchVenue(searchString) {
 }
 
 module.exports = {
-    searchEventByVenue: searchEventByVenue
+    searchEventByVenue: searchEventByVenue,
     searchVenue: searchVenue
 }
