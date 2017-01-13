@@ -12,6 +12,7 @@ var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
+var parseXML = require('xml-parser');
 var async = require("async");
 
 var request = require('request');
@@ -32,6 +33,7 @@ var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know 
     '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
+    '- What hiphop band is playing tonight at 21:00?<br/>' +
     "Questions which I can't answer, will be rooted to my real-life friends.";
 
 var bot = new builder.UniversalBot(connector);
@@ -42,6 +44,27 @@ var luisAPIKey = process.env.LuisAPIKey;
 var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
+
+var MicrosoftCognitiveServicesAPIKey = process.env.MicrosoftCognitiveServicesAPIKey;
+var translationToken = null;
+function getAndSaveTranslationAPIToken(callback){
+    request.post({
+        url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
+        qs: {
+            "Subscription-Key": MicrosoftCognitiveServicesAPIKey
+        }
+    },
+    function (error, response, body) {
+        if (error) {
+            return console.log(error);
+            if (callback) return callback(error);
+        }
+        translationToken = body;
+        console.log('Saved translationToken');
+        if (callback) return callback(null);
+    })
+}
+getAndSaveTranslationAPIToken();
 
 //load json
 var fs = require("fs");
@@ -472,7 +495,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 }
             });
         } else {
-            session.send('Oops! That place I knew is gone...');
+            session.send('You did not give me a real location.');
         }
     }])
     .matches('getWeatherData', [function (session, args, next)  {
@@ -610,9 +633,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var msg = new builder.Message(session).addAttachment(card);
         session.send(msg);
     }])
+
+  .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
 	.matches('getWillRain', [
          function (session, args, next)  {
-             
+
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
             //console.log(band);
             if (!band) {
@@ -631,13 +656,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
-           
+
 
             session.sendTyping();
             var latlngTime = darkSkyLatLng.split(",");
 
             var timestamp = (eventData.start+eventData.end)/2;
-            timestamp += 60*60;//UTC to UTC+1            
+            timestamp += 60*60;//UTC to UTC+1
             latlngTime.push(timestamp );
 
             // var time = builder.EntityRecognizer.resolveTime(args.entities);
@@ -662,15 +687,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     contentType: 'image/gif',
                     contentUrl: gifUrl
                 }]);
-                session.send(radarReply); 
+                session.send(radarReply);
            }
            session.send(cardText);
 
         });
     }])
-
-    .matches('getByGenre', getByGenre(lineup))
-
     .onDefault((session) => {
         session.sendTyping();
         request.post({
@@ -712,6 +734,75 @@ bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa
 
 bot.dialog('/', intents);
 
+function detectLanguage(text, callback) {
+    request.get({
+        url: 'https://api.microsofttranslator.com/v2/http.svc/Detect',
+        qs: {text: text},
+        auth: {
+            'bearer': translationToken
+        }
+    }, function (error, response, body) {
+        if (error) {
+            console.log('Error while detecting the language');
+            getAndSaveTranslationAPIToken(function () {detectLanguage(text, callback)});
+            return;
+        }
+        var lang = parseXML(body).root.content;
+        return callback(null, lang);
+    });
+}
+
+function translateToEnglish(text, fromLanguage, callback) {
+    request.get({
+        url: 'https://api.microsofttranslator.com/v2/http.svc/Translate',
+        qs: {text: text, from: fromLanguage, to: 'en'},
+        auth: {
+            'bearer': translationToken
+        }
+    }, function(error, response, body){
+        console.log('callback translateToEnglish');
+        if (error) {
+            console.log('Error while translating the input');
+            getAndSaveTranslationAPIToken(function () {translateToEnglish(text, from, callback)});
+            return;
+        }
+        var translatedText = parseXML(body).root.content;
+        console.log('Translated text:' + translatedText);
+        return callback(null, translatedText);
+    });
+}
+
+bot.use({
+    receive: function (event, next) {
+        if (! event.text) {
+            return next();
+        }
+        else if (! event.textLocale) {
+            console.log('detecting locale');
+            detectLanguage(event.text, function(error, language) {
+                console.log('Locale detected:' + language);
+                event.textLocale = language;
+                event.originalText = event.text
+                if (language == 'en') return next();
+                translateToEnglish(event.text, language, function (error, translatedText) {
+                    event.originalText = event.text;
+                    event.text = translatedText;
+                    return next();
+                });
+            });
+        }
+        else if (event.textLocale != 'en') {
+            translateToEnglish(event.text, event.textLocale, function (error, translatedText) {
+                event.text = translatedText;
+                return next();
+            });
+        }
+        else {
+            return next();
+        }
+    }
+})
+
 
 function createCard(session, eventData) {
 
@@ -729,7 +820,7 @@ function createWeatherCards(session, weatherData) {
       .title("Current weather in Groningen")
       .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
       .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
-      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
+      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.jpg')])
       .buttons([builder.CardAction.openUrl(session, 'http://www.buienradar.nl/weer/groningen/nl/2755251', 'View details')])
     );
     for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
@@ -739,7 +830,7 @@ function createWeatherCards(session, weatherData) {
           .title("+" + (i+1) + " hours")
           .subtitle(hourlyData.summary + " | " + Math.round(hourlyData.temperature, 1) + "˚C")
           .text("In " + (i+1) + " hours, the temperature will be: " + Math.round(hourlyData.temperature, 1) + "˚C (feels like: " + Math.round(hourlyData.apparentTemperature, 1) + "˚C)." )
-          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.svg')])
+          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.jpg')])
 
         );
       }
