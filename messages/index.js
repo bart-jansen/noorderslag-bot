@@ -22,15 +22,14 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?';
 
-var bot = new builder.UniversalBot(connector); //, function (session) {
-    // session.send(HELP_TEXT);
-// });
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+    'Try me, I dare you. Some examples are:<br/>'+
+    '- When is blaudzun playing?<br/>' +
+    '- Who is playing near me?<br/>' +
+    '- Who is playing tomorrow at 21:00?';
+
+var bot = new builder.UniversalBot(connector);
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;
@@ -44,12 +43,16 @@ var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
 
+var functions = require('./functions');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
 // add seperate artist list
 var artists = [];
+var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
+
 events.forEach(function(event) {
     artists.push(event.description);
 });
@@ -161,28 +164,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
+
     .matches('getTimetable', [function (session, args, next)  {
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        // Prompt for title
-        // if (!data.venue) {
-            // builder.Prompts.text(session, 'What venue are you looking for?');
-        // } else {
-            next();
-        // }
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
+        } else {
+            next({ response: venue.entity });
+        }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -211,7 +210,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
-                console.log('test');
 
                 if(cards.length > 0) {
 
@@ -227,13 +225,45 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 }
             }
         }
-        else if(session.dialogData && session.dialogData.data && session.dialogData.data.venue) {
-            //look for the complete timespan (maybe from now on)
-            // session.send('Looking for venue '+ session.dialogData.data.venue);
-            session.send('Looking for venue ');
-        }
         else {
-            session.send('cant get venue or date...');
+            session.send('venue search' + session.dialogData.data.venue);
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
+            session.send(JSON.stringify(venueSearch));
+
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
+
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                if(cards.length > 0) {
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue..')
+                }
+
+            }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
+            }
+            else {
+                session.send('cant find venue...');
+            }
+
         }
     }])
     .matches('getLocation', [function (session) {
@@ -266,6 +296,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
         forecast.get(darkSkyLatLng.split(","), function(err, weather) { // get forecast data from Dark Sky
           if(err) return console.dir(err);
+           var radarReply = new builder.Message(session)
+              .attachments([{
+                contentType: 'image/gif',
+                contentUrl: 'http://api.buienradar.nl/image/1.0/RadarMapNL?w=500&h=512'
+              }]);
+          session.send(radarReply); // off you go, weather cards!
+
           var cards = createWeatherCards(session, weather); // create the cards
           var reply = new builder.Message(session)
               .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -341,7 +378,39 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
 
     .onDefault((session) => {
-        session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+        request.post({
+            url: 'https://westus.api.cognitive.microsoft.com/qnamaker/v1.0/knowledgebases/' + process.env['knowledgeBaseId'] + '/generateAnswer',
+            headers: {
+                'Ocp-Apim-Subscription-Key': process.env['ocpApimSubscriptionKey'],
+                'Content-Type': 'application/json'
+            },
+            body: {
+                'question': session.message.text
+            },
+            json: true
+        }, function(error, response, body ){
+           if (error || response.statusCode != 200 || body.score < 90 ) {
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
+                'Sure. Please talk again and try to understand me ;)',
+                "I'm still broke from last night. Please, can you be more specific?",
+                "I am not as smart as you, what do you mean?",
+                "You are amazing! But I am afraid I don't know what you mean.",
+                "I don't know. Can I help you with anything else?",
+                "This is above my paygrade, topsecret",
+                "I wanna help, but I don't know how"]
+
+                session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
+                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+            }
+            else{
+                session.send(body.answer)
+            }
+        });
+    })
+    .onBegin(function (session, args, next) {
+        // session.dialogData.name = args.name;
+        session.send(HELP_TEXT);
+        next();
     });
 
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
@@ -360,14 +429,13 @@ function createCard(session, eventData) {
 }
 
 function createWeatherCards(session, weatherData) {
-    // var degrees = weatherData.getDegreeTemp();
     var cards = [];
     cards.push(new builder.HeroCard(session)
       .title("Current weather in Groningen")
       .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
       .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
       .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
-
+      .buttons([builder.CardAction.openUrl(session, 'http://www.buienradar.nl/weer/groningen/nl/2755251', 'View details')])
     );
     for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
       if ((i+1) % 3 === 0) {
@@ -416,10 +484,3 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
-
-
-
-
-
-
-
