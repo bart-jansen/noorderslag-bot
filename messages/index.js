@@ -82,17 +82,6 @@ function getArtist(artistName) {
 
     return returnVal;
 }
-function searchVenue(searchString) {
-    var venueList = [];
-
-    for(var i = 0; i < venues.length; i++) {
-        if(venues[i].toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            venueList.push(venues[i]);
-        }
-    }
-
-    return venueList;
-}
 
 function findEvents(searchTime, endTime) {
     var foundEvents = [];
@@ -207,7 +196,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
         else {
             session.send('venue search' + session.dialogData.data.venue);
-            var venueSearch = searchVenue(session.dialogData.data.venue.toString());
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
