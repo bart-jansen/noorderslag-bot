@@ -32,6 +32,7 @@ var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know 
     '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
+    '- What hiphop band is playing tonight at 21:00?<br/>' +
     "Questions which I can't answer, will be rooted to my real-life friends.";
 
 var bot = new builder.UniversalBot(connector);
@@ -513,9 +514,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+
+  .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
 	.matches('getWillRain', [
          function (session, args, next)  {
-             
+
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
             //console.log(band);
             if (!band) {
@@ -534,13 +537,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
-           
+
 
             session.sendTyping();
             var latlngTime = darkSkyLatLng.split(",");
 
             var timestamp = (eventData.start+eventData.end)/2;
-            timestamp += 60*60;//UTC to UTC+1            
+            timestamp += 60*60;//UTC to UTC+1
             latlngTime.push(timestamp );
 
             // var time = builder.EntityRecognizer.resolveTime(args.entities);
@@ -565,15 +568,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     contentType: 'image/gif',
                     contentUrl: gifUrl
                 }]);
-                session.send(radarReply); 
+                session.send(radarReply);
            }
            session.send(cardText);
 
         });
     }])
-
-    .matches('getByGenre', getByGenre(lineup))
-
     .onDefault((session) => {
         session.sendTyping();
         request.post({
@@ -632,7 +632,7 @@ function createWeatherCards(session, weatherData) {
       .title("Current weather in Groningen")
       .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
       .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
-      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
+      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.jpg')])
       .buttons([builder.CardAction.openUrl(session, 'http://www.buienradar.nl/weer/groningen/nl/2755251', 'View details')])
     );
     for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
@@ -642,7 +642,7 @@ function createWeatherCards(session, weatherData) {
           .title("+" + (i+1) + " hours")
           .subtitle(hourlyData.summary + " | " + Math.round(hourlyData.temperature, 1) + "˚C")
           .text("In " + (i+1) + " hours, the temperature will be: " + Math.round(hourlyData.temperature, 1) + "˚C (feels like: " + Math.round(hourlyData.apparentTemperature, 1) + "˚C)." )
-          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.svg')])
+          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.jpg')])
 
         );
       }
