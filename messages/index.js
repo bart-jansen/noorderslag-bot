@@ -63,6 +63,48 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+// add lineup from artist with genres, thats not in the events
+var esnsLineUp = {};
+
+var lineUpContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var esLineUp = JSON.parse(lineUpContents);
+
+var gdActs={};
+var gdCountries={};
+var gdDumNaam='';
+Object.keys(esLineUp).forEach(function (key) {
+    switch (key) {
+        case 'acts':
+
+            for(var i=0;i<esLineUp['acts'].length;i++){
+                gdDumNaam=esLineUp['acts'][i]['title'];
+                gdActs[gdDumNaam]={};
+
+                gdActs[gdDumNaam]['naam']=esLineUp['acts'][i]['title'];
+                if(esLineUp['acts'][i]['countries'].length>0){
+                    gdActs[gdDumNaam]['country']=esLineUp['acts'][i]['countries'][0];
+                }else{
+                    gdActs[gdDumNaam]['country']='';
+                }
+
+                if(esLineUp['acts'][i]['tagLabels']){
+                    gdActs[gdDumNaam]['genre']=esLineUp['acts'][i]['tagLabels'].join();
+                }else{
+                    gdActs[gdDumNaam]['genre']='';
+                }
+            }
+
+            break;
+        case 'countries':
+            gdCountries=esLineUp['countries'];
+            break;
+        case 'default':
+            break;
+    }
+
+
+});
+
 /*
 foodCategory global
 not nice, no priority at this moment to do it otherwise
