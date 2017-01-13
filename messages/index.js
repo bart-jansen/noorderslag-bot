@@ -314,7 +314,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){NODE_ENV=development
+        if(!foodCategory){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
@@ -485,6 +485,47 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+    .matches('goToVenue', [function(session,args,next){
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+        if(!venue){
+            builder.Prompts.text(session, "What venue do you want to go to?");
+        } else {
+            next({response: venue.entity})
+        }
+    },
+    function(session, results, next) {
+        // Get results from JSON
+        var m = new Matcher({values: venues,threshold: 6});
+        var v = m.list(results.response);
+        var optionList = []
+        if(v.length > 1) {
+            session.send('Which venue do you mean?');
+            v.forEach(function (venue) {
+                optionList.push(venue.value);
+                session.send('- ' + venue.value)
+            });
+
+
+            builder.Prompts.choice(session, "Which venue?", optionList);
+        }
+        else if(v.length == 1) {
+            next({results: v[0]})
+        }
+        else {
+            session.send('I could not find that venue')
+        }
+
+    },
+    function(session, results, next){
+        console.log(results);
+        // builder.HeroCard(session)
+        //   .title(eventData.description)
+        //   .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
+        //   .text(eventData.text)
+        //   .images([builder.CardImage.create(session, eventData.img)])
+        //   .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
+        session.send('Found ' + results.response.entity)
+    }])
 
     .onDefault((session) => {
         session.sendTyping();
