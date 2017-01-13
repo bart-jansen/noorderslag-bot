@@ -203,9 +203,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            session.send('venue search');
+            session.send('venue search' + session.dialogData.data.venue);
             var venueSearch = searchVenue(session.dialogData.data.venue);
-            session.send(venueSearch.length);
+
+            if(venueSearch) {
+                session.send(venueSearch.length);
+            }
+            else {
+                session.send('error');
+            }
 
             if(venueSearch.length === 1) {
                 session.send('found 1 matching venue!' +  JSON.stringify(venueSearch))
