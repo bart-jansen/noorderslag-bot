@@ -208,8 +208,17 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
+            var venueSearch = searchVenue(session.dialogData.data.venue);
 
-            session.send('venue' +  session.dialogData.data.venue);
+            if(venueSearch.length === 1) {
+                session.send('found 1 matching venue!' +  JSON.stringify(venueSearch))
+            }
+            else if(venueSearch.length > 1) {
+                session.send('found multiple venues' +  JSON.stringify(venueSearch))
+            }
+            else {
+                session.send('cant find venue');
+            }
         }
     }])
     .matches('getLocation', [function (session) {
