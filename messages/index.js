@@ -207,7 +207,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('food', [function(session, args) {
+    .matches('getFood', [function(session, args) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
             prompt: "I will try to find a place where you can eat " + foodCategory.entity + "! Where are you now?",
