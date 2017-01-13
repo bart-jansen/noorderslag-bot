@@ -27,9 +27,9 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 });
 
 
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
-    'Try me, I dare you. Some examples are:<br/>'+
-    '- When is blaudzun playing?<br/>' +
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag! Try me, I dare you.<br/>" +
+    '<br/><br/>Some examples are:<br/>'+
+    '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?';
 
@@ -166,7 +166,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(msg);
             }
             else {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('Oops, I can\'t find the artist \'%s\'.', result.response);
             }
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
@@ -195,7 +195,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
-                session.send('full day');
+                session.send('Here is the whole day. That\'s a lot!');
 
                 var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
@@ -231,7 +231,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time.')
                 }
             }
         }
@@ -260,7 +260,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that venue..')
+                    session.send('Unfortunately nobody is playing at that venue.')
                 }
 
             }
@@ -271,10 +271,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 });
 
 
-                builder.Prompts.choice(session, "Which venue?", venueSearch);
+                builder.Prompts.choice(session, "What is the right one?", venueSearch);
             }
             else {
-                session.send('cant find venue...');
+                session.send('I can\'t find it. Sorry.');
             }
         }
     }, function (session, results) {
@@ -289,7 +289,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
     .matches('getLocation', [function (session) {
             var options = {
-                prompt: "I will try to find some parties close to you! Where are you currently located?",
+                prompt: "I will try to find some great music close to you! Where are you now?",
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
@@ -424,7 +424,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         function (session, args, next)  {
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
             if (!band) {
-                builder.Prompts.text(session, "What artist/band are you looking for?");
+                builder.Prompts.text(session, "What artist or band are you looking for?");
             } else {
                 next({ response: band.entity });
             }
@@ -436,7 +436,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var eventData = getArtist(results.response);
 
             if (!eventData) {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('Oops, I can\'t find \'%s\'.', result.response);
                 return;
             }
 
