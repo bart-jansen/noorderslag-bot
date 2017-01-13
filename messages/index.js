@@ -410,10 +410,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
 
-            session.send('results' + JSON.stringify(results.response));
+            // session.send('results' + JSON.stringify(results.response));
 
-            session.send('category' + JSON.stringify(category));
-            session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
+            // session.send('category' + JSON.stringify(category));
+            // session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
 
             request.get({
                 url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza'
@@ -426,36 +426,32 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     if (json.results || json.results.length > 0) {
                         var cards = [];
 
-                        session.send(JSON.stringify(json.results));
+                        // session.send(JSON.stringify(json.results));
 
 
                         for (var i = 0; i < Math.min(json.results.length, 5); i++) {
                             var location = json.results[i]
                             if (location.photos != undefined && location.photos.length > 0) {
-                                var response = syncRequest(
-                                    'GET',
-                                    'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
-                                    {
-                                        "followRedirects": false
-                                    }
-                                );
-                                if (response.statusCode != 302) {
-                                    session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
-                                } else {
-                                    session.send('trying to create card');
+                                request.get({
+                                    url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256'
+                                }, function (error, response, body) {
+                                    session.send(JSON.stringify(response));
+                                    session.send(JSON.stringify(body));
+                                });
+                                //     // session.send('trying to create card');
 
-                                    var card = new builder.HeroCard(session)
-                                        .title(location.name)
-                                        .subtitle(location.vicinity)
-                                        .images([builder.CardImage.create(session, response.headers.location)])
-                                        .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-                                    session.send('push card');
-                                    cards.push(card);
-                                }
+                                //     var card = new builder.HeroCard(session)
+                                //         .title(location.name)
+                                //         .subtitle(location.vicinity)
+                                //         .images([builder.CardImage.create(session, response.headers.location)])
+                                //         .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
+                                //     session.send('push card');
+                                //     cards.push(card);
+                                // }
                             }
                         }
 
-                        session.send('cards length ' + cards.length);
+                        // session.send('cards length ' + cards.length);
 
                         if (cards.length != 0) {
                             var reply = new builder.Message(session)
