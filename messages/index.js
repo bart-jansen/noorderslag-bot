@@ -272,21 +272,20 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function(session, results) {
 
         if(results.response) {
+            session.sendTyping();
+            var googleMapsApiKey = process.env.GoogleMapsApiKey;
+            var lng = results.response['geo']['longitude'];
+            var lat = results.response['geo']['latitude'];
 
-            try {
-                var googleMapsApiKey = process.env.GoogleMapsApiKey;
-                var lng = results.response['geo']['longitude'];
-                var lat = results.response['geo']['latitude'];
-
-                request.get({
-                    url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza',
-                },
-                function (error, response, body) {
-                    if (error || response.statusCode != 200) {
-                        session.send('Sorry, I could not find the any locations to eat .', results.response);
-                    }
+            request.get({
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza',
+            },
+            function (error, response, body) {
+                if (error || response.statusCode != 200) {
+                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                } else {
                     json = JSON.parse(body);
-                    if(json.results || json.results.length > 0) {
+                    if (json.results || json.results.length > 0) {
                         var cards = [];
 
                         try {
@@ -303,33 +302,38 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                             "followRedirects": false
                                         }
                                     );
-                                    if (error || response.statusCode != 200) {
-                                        session.send('Sorry, I could not find the any locations to eat .', results.response);
+                                    if (response.statusCode != 302) {
+                                        console.log('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                    } else {
+                                        var card = new builder.HeroCard(session)
+                                            .title(location.name)
+                                            .subtitle(location.vicinity)
+                                            .images([builder.CardImage.create(session, response.headers.location)])
+                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
+                                        console.log('push card');
+                                        cards.push(card);
                                     }
-                                    var card = new builder.HeroCard(session)
-                                        .title(location.name)
-                                        .subtitle(location.vicinity)
-                                        .images([builder.CardImage.create(session, response.headers.location)])
-                                        .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
-                                    console.log('push card');
-                                    cards.push(card);
                                 }
                             }
-                        } catch (e) {} //just for ending the loop early
-                        var reply = new builder.Message(session)
-                            .attachmentLayout(builder.AttachmentLayout.carousel)
-                            .attachments(cards);
+                        } catch (e) {
+                        } //just for ending the loop early
 
-                        session.send(reply);
+                        if (cards.length != 0) {
+                            var reply = new builder.Message(session)
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(cards);
+
+                            session.send(reply);
+                        } else {
+                            session.send('1 Sorry, I could not find the any locations to eat .', results.response);
+                        }
                     } else {
-                        session.send('Sorry, I could not find the any locations to eat .', results.response);
+                        session.send('1 Sorry, I could not find the any locations to eat .', results.response);
                     }
-                });
-            } catch (e) {
-                if (e !== BreakException) throw e;
-            }
+                }
+            });
         } else {
-            session.send('Sorry, I could not find the any locations to eat .', results.response);
+            session.send('2 Sorry, I could not find the any locations to eat .', results.response);
         }
     }])
     .matches('getWeatherData', [function (session, args, next)  {
