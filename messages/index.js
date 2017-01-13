@@ -31,7 +31,8 @@ var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know 
     '<br/><br/>Some examples are:<br/>'+
     '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
-    '- Who is playing tomorrow at 21:00?';
+    '- Who is playing tomorrow at 21:00?<br/>' +
+    "Questions which I can't answer, will be rooted to my real-life friends.";
 
 var bot = new builder.UniversalBot(connector);
 
@@ -49,9 +50,15 @@ var request = require('request');
 
 var functions = require('./functions');
 
+// intents
+var getByGenre = require('./intents/get-by-genre');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
+
+var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
@@ -61,7 +68,7 @@ events.forEach(function(event) {
     artists.push(event.description);
 });
 
-var m = new Matcher({values: artists,threshold: 6});
+var m = new Matcher({values: artists,threshold: 3});
 
 /*
 foodCategory global
@@ -159,7 +166,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             // // ... save task
             var eventData = getArtist(results.response);
 
-            if(eventData) {
+            if(eventData.length > 0) {
                 var card = createCard(session, eventData);
 
                 var msg = new builder.Message(session).addAttachment(card);
@@ -176,6 +183,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
+        session.send('timetable');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
@@ -485,7 +493,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
-
+    .matches('getByGenre', getByGenre(lineup))
     .onDefault((session) => {
         session.sendTyping();
         request.post({
@@ -516,12 +524,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(body.answer)
             }
         });
-    })
-    .onBegin(function (session, args, next) {
-        // session.dialogData.name = args.name;
-        session.send(HELP_TEXT);
-        next();
     });
+    // .onBegin(function (session, args, next) {
+    //     // session.dialogData.name = args.name;
+    //     session.send(HELP_TEXT);
+    //     next();
+    // });
 
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
 
