@@ -248,20 +248,27 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('getFood', [function(session, args) {
+    .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        var options = {
-            prompt: "I will try to find a place where you can eat " + foodCategory.entity + "! Where are you now?",
-            useNativeControl: true,
-            reverseGeocode: true,
-            requiredFields: locationDialog.LocationRequiredFields.streetAddress |
-            locationDialog.LocationRequiredFields.locality |
-            locationDialog.LocationRequiredFields.postalCode |
-            locationDialog.LocationRequiredFields.country
-        };
+        if(!foodCategory){
+            builder.Prompts.text(session, "What kind of food are you looking for?");
+        } else {
+            next({response: foodCategory.entity })
 
-        locationDialog.getLocation(session, options);
+        }
     },
+      function(session, results){
+          var options = {
+              prompt: "I will try to find a place where you can eat " + results.response + "! Where are you now?",
+              useNativeControl: true,
+              reverseGeocode: true,
+              requiredFields: locationDialog.LocationRequiredFields.streetAddress |
+              locationDialog.LocationRequiredFields.locality |
+              locationDialog.LocationRequiredFields.postalCode |
+              locationDialog.LocationRequiredFields.country
+          };
+          locationDialog.getLocation(session, options);
+      },
     function(session, results) {
 
         if(results.response) {
