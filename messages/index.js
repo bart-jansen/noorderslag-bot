@@ -408,7 +408,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         if(results.response) {
             session.sendTyping();
-            var googleMapsApiKey = process.env.GoogleMapsApiKey;
+            var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
             request.get({
