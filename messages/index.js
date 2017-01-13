@@ -197,6 +197,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
           timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
 
+        session.send(JSON.stringify(data));
+
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
