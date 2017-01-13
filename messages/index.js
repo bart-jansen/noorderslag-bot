@@ -488,7 +488,64 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+	.matches('getWillRain', [
+         function (session, args, next)  {
+             
+            var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+            //console.log(band);
+            if (!band) {
+                builder.Prompts.text(session, "During what artist/band are you looking for?");
+            } else {
+                next({ response: band.entity });
+            }
+        },
+        function (session, results)  {
+            if (! results.response) {
+                session.send('Ok');
+            }
+            var eventData = getArtist(results.response);
 
+            if(!eventData) {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                return;
+            }
+           
+
+            session.sendTyping();
+            var latlngTime = darkSkyLatLng.split(",");
+
+            var timestamp = (eventData.start+eventData.end)/2;
+            timestamp += 60*60;//UTC to UTC+1            
+            latlngTime.push(timestamp );
+
+            // var time = builder.EntityRecognizer.resolveTime(args.entities);
+            forecast.get(latlngTime, function(err, weather) { // get forecast data from Dark Sky
+            if(err) return console.dir(err);
+                var gifUrl = "";
+                var cardText = "No it will probably not rain "+eventData.description;
+
+            if(weather.currently.summary.toLowerCase().indexOf("rain") !== -1 || weather.currently.icon == 'rain'){
+                gifUrl = "http://www.reactiongifs.us/wp-content/uploads/2013/06/raining_david_tennant.gif";
+                cardText = "Yes it will rain during "+eventData.description;
+            }
+            else if(weather.currently.summary.toLowerCase().indexOf("snow") !== -1|| weather.currently.icon == 'snow'){
+                gifUrl = "https://media.giphy.com/media/xTcnTehwgRcbgymhTW/giphy.gif";
+                cardText = "Yes it will snow during "+eventData.description;
+            }
+
+
+           if( gifUrl ) {
+                var radarReply = new builder.Message(session)
+                .attachments([{
+                    contentType: 'image/gif',
+                    contentUrl: gifUrl
+                }]);
+                session.send(radarReply); 
+           }
+           session.send(cardText);
+
+        });
+    }])
     .onDefault((session) => {
         session.sendTyping();
         request.post({
