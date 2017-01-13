@@ -177,6 +177,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
+        session.send('timetable');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
@@ -193,8 +194,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
