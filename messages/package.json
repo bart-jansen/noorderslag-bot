@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "async": "^2.1.4",
     "botbuilder": "^3.4.2",
     "botbuilder-azure": "0.0.1",
     "botbuilder-location": "^1.0.2",
@@ -11,6 +12,7 @@
     "forecast": "^0.3.2",
     "moment": "^2.17.1",
     "request": "^2.79.0",
+    "youtube-api": "^2.0.6",
     "sync-request": "4.0.1"
   },
   "devDependencies": {
