@@ -341,7 +341,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             json: true
         }, function(error, response, body ){
            if (error || response.statusCode != 200 || body.score < 90 ) {
-                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?', 'Sure. Please talk again and try to understand me ;)',"I'm still broke from last night. Please, can you be more specific?"]
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
+                'Sure. Please talk again and try to understand me ;)',
+                "I'm still broke from last night. Please, can you be more specific?",
+                "I am not as smart as you, what do you mean?",
+                "You are amazing! But I am afraid I don't know what you mean.",
+                "I don't know. Can I help you with anything else?",
+                "This is above my paygrade, topsecret",
+                "I wanna help, but I don't know how"]
 
                 session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
                 // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
