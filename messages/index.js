@@ -199,6 +199,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
+
+        session.send(JSON.stringify(session.dialogData));
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -337,7 +339,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){NODE_ENV=development
+        if(!foodCategory){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
