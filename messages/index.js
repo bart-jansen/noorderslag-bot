@@ -269,11 +269,22 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 venueSearch.forEach(function(venue) {
                     session.send('- ' + venue)
                 });
+
+
+                builder.Prompts.choice(session, "Which venue?", venueSearch);
             }
             else {
                 session.send('cant find venue...');
             }
-
+        }
+    }, function (session, results) {
+        if (results.response) {
+            session.send('jahoor');
+            session.send(results.response.entity);
+            var region = salesData[results.response.entity];
+            session.send("We sold %(units)d units for a total of %(total)s.", region);
+        } else {
+            session.send("ok");
         }
     }])
     .matches('getLocation', [function (session) {
@@ -476,6 +487,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
 
     .onDefault((session) => {
+        session.sendTyping();
         request.post({
             url: 'https://westus.api.cognitive.microsoft.com/qnamaker/v1.0/knowledgebases/' + process.env['knowledgeBaseId'] + '/generateAnswer',
             headers: {
@@ -487,7 +499,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             },
             json: true
         }, function(error, response, body ){
-           if (error || response.statusCode != 200 || body.score < 90 ) {
+           if (error || response.statusCode != 200 || body.score < 70 ) {
                 var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
                 'Sure. Please talk again and try to understand me ;)',
                 "I'm still broke from last night. Please, can you be more specific?",
@@ -495,7 +507,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 "You are amazing! But I am afraid I don't know what you mean.",
                 "I don't know. Can I help you with anything else?",
                 "This is above my paygrade, topsecret",
-                "I wanna help, but I don't know how"]
+                "I wanna help, but I don't know how"];
 
                 session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
                 // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
