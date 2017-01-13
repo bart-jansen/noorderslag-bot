@@ -24,11 +24,12 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?';
+
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+    'Try me, I dare you. Some examples are:<br/>'+
+    '- When is blaudzun playing?<br/>' +
+    '- Who is playing near me?<br/>' +
+    '- Who is playing tomorrow at 21:00?';
 
 var bot = new builder.UniversalBot(connector);
 
@@ -43,6 +44,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisApp
 var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
+
+var functions = require('./functions');
 
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
@@ -88,20 +91,6 @@ function getArtist(artistName) {
     }
 
     return returnVal;
-}
-
-function searchVenue(searchString) {
-    var venueList = [];
-    venues.forEach(function(venue) {
-        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            // count++;
-            venueList.push(venue);
-            // console.log('found match');
-
-        }
-
-        return venueList;
-    })
 }
 
 function findEvents(searchTime, endTime) {
@@ -154,32 +143,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
+
     .matches('getTimetable', [function (session, args, next)  {
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        session.send('testing');
-
-        // Prompt for title
-        if (!data.venue && !data.time) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
         } else {
             next({ response: venue.entity });
         }
     },
     function (session, results) {
-        session.send(results.response);
-
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -208,7 +189,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
-                console.log('test');
 
                 if(cards.length > 0) {
 
@@ -220,12 +200,49 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    // session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time..')
                 }
             }
         }
         else {
-            // session.send('venue');
+            session.send('venue search' + session.dialogData.data.venue);
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
+            session.send(JSON.stringify(venueSearch));
+
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
+
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                if(cards.length > 0) {
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue..')
+                }
+
+            }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
+            }
+            else {
+                session.send('cant find venue...');
+            }
+
         }
     }])
     .matches('getLocation', [function (session) {
@@ -422,7 +439,17 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             json: true
         }, function(error, response, body ){
            if (error || response.statusCode != 200 || body.score < 90 ) {
-                session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
+                'Sure. Please talk again and try to understand me ;)',
+                "I'm still broke from last night. Please, can you be more specific?",
+                "I am not as smart as you, what do you mean?",
+                "You are amazing! But I am afraid I don't know what you mean.",
+                "I don't know. Can I help you with anything else?",
+                "This is above my paygrade, topsecret",
+                "I wanna help, but I don't know how"]
+
+                session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
+                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
             }
             else{
                 session.send(body.answer)
