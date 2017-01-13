@@ -557,7 +557,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             builder.Prompts.choice(session, "Which venue?", optionList);
         }
         else if(v.length == 1) {
-            next({results: v[0]})
+            next({response: {entity: v[0].value}})
         }
         else {
             session.send('I could not find that venue')
@@ -566,13 +566,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
     function(session, results, next){
         console.log(results);
-        // builder.HeroCard(session)
-        //   .title(eventData.description)
-        //   .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
-        //   .text(eventData.text)
-        //   .images([builder.CardImage.create(session, eventData.img)])
-        //   .buttons([builder.CardAction.openUrl(session, 'https://www.eurosonic-noorderslag.nl' + eventData.link, 'View more details')]);
-        session.send('Found ' + results.response.entity)
+        session.send('Here are directions to ' + results.response.entity);
+        builder.HeroCard(session)
+          .title(results.response.entity)
+          // .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
+          // .text(eventData.text)
+          .images([builder.CardImage.create(session, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt9a7el0N4VsBFh-rP4sd5lbyCqCBFCbM8xI4ZvAZS7VbbhCyRu8o1Y07S')])
+          .buttons([builder.CardAction.openUrl(session, 'https://maps.google.com', 'Go there now')]);
     }])
 
     .onDefault((session) => {
