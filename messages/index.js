@@ -53,9 +53,15 @@ var functions = require('./functions');
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
+var venues = JSON.parse(fs.readFileSync(__dirname + '/data/venues.json'));
+var venuesSimple = []
+venues.forEach(function(venue) {
+    venuesSimple.push(venue.name);
+});
+//var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
+
 // add seperate artist list
 var artists = [];
-var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
 
 events.forEach(function(event) {
     artists.push(event.description);
@@ -537,7 +543,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
     function(session, results, next) {
         // Get results from JSON
-        var m = new Matcher({values: venues,threshold: 6});
+        var m = new Matcher({values: venuesSimple,threshold: 6});
         var v = m.list(results.response);
         var optionList = []
         if(v.length > 1) {
