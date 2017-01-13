@@ -90,6 +90,7 @@ function searchVenue(searchString) {
 
     return venueList;
 }
+
 function findEvents(searchTime, endTime) {
     var foundEvents = [];
     events.forEach(function(event) {
@@ -141,7 +142,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }])
 
-    .matches('getTimetable', [function (session, args, next) {
+    .matches('getTimetable', [function (session, args, next)  {
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
@@ -186,7 +187,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
-                console.log('test');
 
                 if(cards.length > 0) {
 
@@ -203,9 +203,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            session.send('searching venues');
+            session.send('venue search');
             var venueSearch = searchVenue(session.dialogData.data.venue);
-
             session.send(venueSearch.length);
 
             if(venueSearch.length === 1) {
@@ -391,10 +390,3 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
-
-
-
-
-
-
-
