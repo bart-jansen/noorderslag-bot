@@ -406,6 +406,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
+
+            session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory);
+
             request.get({
                 url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory,
             },
