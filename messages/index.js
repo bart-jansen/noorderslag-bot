@@ -369,7 +369,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
-                    locationDialog.LocationRequiredFields.streetAddress |
                     locationDialog.LocationRequiredFields.locality |
                     locationDialog.LocationRequiredFields.postalCode |
                     locationDialog.LocationRequiredFields.country
@@ -405,8 +404,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
               prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
-              requiredFields: locationDialog.LocationRequiredFields.streetAddress |
-              locationDialog.LocationRequiredFields.locality |
+              requiredFields:
+git st              locationDialog.LocationRequiredFields.locality |
               locationDialog.LocationRequiredFields.postalCode |
               locationDialog.LocationRequiredFields.country
           };
