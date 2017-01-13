@@ -61,7 +61,7 @@ events.forEach(function(event) {
     artists.push(event.description);
 });
 
-var m = new Matcher({values: artists,threshold: 6});
+var m = new Matcher({values: artists,threshold: 3});
 
 /*
 foodCategory global
