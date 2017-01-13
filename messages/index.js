@@ -249,7 +249,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 var lat = place.geo.latitude;
                 var lng = place.geo.longitude;
 
-                session.send("Party going on 300m from you! at  " + JSON.stringify(place));
+                session.send("Party going on 300m from you! at " + JSON.stringify(place));
             }
         }
     ])
