@@ -376,101 +376,101 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('getFood', [function(session, args, next) {
-        category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        foodCategory = category
-        if(!category){
-            builder.Prompts.text(session, "What do you wanna eat?");
-        } else {
-            next({response: category.entity })
+    // .matches('getFood', [function(session, args, next) {
+    //     category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+    //     foodCategory = category
+    //     if(!category){
+    //         builder.Prompts.text(session, "What do you wanna eat?");
+    //     } else {
+    //         next({response: category.entity })
 
-        }
-    },
-    function(session, results){
-        if(!foodCategory)
-            foodCategory = results.response;
+    //     }
+    // },
+    // function(session, results){
+    //     if(!foodCategory)
+    //         foodCategory = results.response;
 
-          console.log(foodCategory);
-          var options = {
-              prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
-              useNativeControl: true,
-              reverseGeocode: true,
-              requiredFields:
-              locationDialog.LocationRequiredFields.locality |
-              locationDialog.LocationRequiredFields.postalCode |
-              locationDialog.LocationRequiredFields.country
-          };
-          locationDialog.getLocation(session, options);
-      },
-    function(session, results) {
+    //       console.log(foodCategory);
+    //       var options = {
+    //           prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
+    //           useNativeControl: true,
+    //           reverseGeocode: true,
+    //           requiredFields:
+    //           locationDialog.LocationRequiredFields.locality |
+    //           locationDialog.LocationRequiredFields.postalCode |
+    //           locationDialog.LocationRequiredFields.country
+    //       };
+    //       locationDialog.getLocation(session, options);
+    //   },
+    // function(session, results) {
 
-        if(results.response) {
-            session.sendTyping();
-            var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
-            var lng = results.response['geo']['longitude'];
-            var lat = results.response['geo']['latitude'];
+    //     if(results.response) {
+    //         session.sendTyping();
+    //         var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
+    //         var lng = results.response['geo']['longitude'];
+    //         var lat = results.response['geo']['latitude'];
 
-            // session.send('results' + JSON.stringify(results.response));
+    //         // session.send('results' + JSON.stringify(results.response));
 
-            // session.send('category' + JSON.stringify(category));
-            // session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
+    //         // session.send('category' + JSON.stringify(category));
+    //         // session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
 
-            request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza'
-            },
-            function (error, response, body) {
-                if (error || response.statusCode != 200) {
-                    session.send('Oops! That place I knew is gone...');
-                } else {
-                    json = JSON.parse(body);
-                    if (json.results || json.results.length > 0) {
-                        var cards = [];
+    //         request.get({
+    //             url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza'
+    //         },
+    //         function (error, response, body) {
+    //             if (error || response.statusCode != 200) {
+    //                 session.send('Oops! That place I knew is gone...');
+    //             } else {
+    //                 json = JSON.parse(body);
+    //                 if (json.results || json.results.length > 0) {
+    //                     var cards = [];
 
-                        // session.send(JSON.stringify(json.results));
+    //                     // session.send(JSON.stringify(json.results));
 
 
-                        for (var i = 0; i < Math.min(json.results.length, 5); i++) {
-                            var location = json.results[i]
-                            if (location.photos != undefined && location.photos.length > 0) {
-                                request.get({
-                                    url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256'
-                                }, function (error, response, body) {
-                                    session.send(JSON.stringify(response));
-                                    session.send(JSON.stringify(body));
-                                });
-                                //     // session.send('trying to create card');
+    //                     for (var i = 0; i < Math.min(json.results.length, 5); i++) {
+    //                         var location = json.results[i]
+    //                         if (location.photos != undefined && location.photos.length > 0) {
+    //                             request.get({
+    //                                 url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256'
+    //                             }, function (error, response, body) {
+    //                                 session.send(JSON.stringify(response));
+    //                                 session.send(JSON.stringify(body));
+    //                             });
+    //                             //     // session.send('trying to create card');
 
-                                //     var card = new builder.HeroCard(session)
-                                //         .title(location.name)
-                                //         .subtitle(location.vicinity)
-                                //         .images([builder.CardImage.create(session, response.headers.location)])
-                                //         .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-                                //     session.send('push card');
-                                //     cards.push(card);
-                                // }
-                            }
-                        }
+    //                             //     var card = new builder.HeroCard(session)
+    //                             //         .title(location.name)
+    //                             //         .subtitle(location.vicinity)
+    //                             //         .images([builder.CardImage.create(session, response.headers.location)])
+    //                             //         .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
+    //                             //     session.send('push card');
+    //                             //     cards.push(card);
+    //                             // }
+    //                         }
+    //                     }
 
-                        // session.send('cards length ' + cards.length);
+    //                     // session.send('cards length ' + cards.length);
 
-                        if (cards.length != 0) {
-                            var reply = new builder.Message(session)
-                                .attachmentLayout(builder.AttachmentLayout.carousel)
-                                .attachments(cards);
+    //                     if (cards.length != 0) {
+    //                         var reply = new builder.Message(session)
+    //                             .attachmentLayout(builder.AttachmentLayout.carousel)
+    //                             .attachments(cards);
 
-                            session.send(reply);
-                        } else {
-                            session.send('Oops! That place I knew is gone...');
-                        }
-                    } else {
-                        session.send('Oops! That place I knew is gone...');
-                    }
-                }
-            });
-        } else {
-            session.send('You did not give me a real location.');
-        }
-    }])
+    //                         session.send(reply);
+    //                     } else {
+    //                         session.send('Oops! That place I knew is gone...');
+    //                     }
+    //                 } else {
+    //                     session.send('Oops! That place I knew is gone...');
+    //                 }
+    //             }
+    //         });
+    //     } else {
+    //         session.send('You did not give me a real location.');
+    //     }
+    // }])
     .matches('getWeatherData', [function (session, args, next)  {
         session.sendTyping();
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
