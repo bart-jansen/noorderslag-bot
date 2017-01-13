@@ -156,11 +156,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         session.send('testing123');
 
+        // if(!session.dialogData) {
+        //     session.dialogData = {};
+        // }
+
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
         session.send('getting timetable');
