@@ -13,6 +13,7 @@ var Forecast = require('forecast');
 var moment = require("moment");
 
 var request = require('request');
+var syncRequest = require('sync-request');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -278,30 +279,28 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 json = JSON.parse(body);
                 if(json.results || json.results.length > 0) {
                     var cards = [];
-                    json.results.forEach(function (location) {
+                    json.results.forEach(function (location, i) {
                         if(location.photos != undefined && location.photos.length > 0) {
-                            console.log(location.photos)
-                            console.log('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256');
-                            request.get({
-                                url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
-                            },
-                            function (error, response, body) {
-                                //console.log(error)
-                                //console.log(response)
-                                console.log(response.Request)
-                                if (error || response.statusCode != 200) {
-                                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                            var response = syncRequest(
+                                'GET',
+                                'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
+                                {
+                                    "followRedirects": false
                                 }
-                                var card = new builder.HeroCard(session)
-                                    .title(location.name)
-                                    .subtitle(location.vicinity)
-                                    .images([builder.CardImage.create(session, imageUrl)])
-                                    .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
-
-                                cards.push(card);
-                            });
+                            );
+                            if (error || response.statusCode != 200) {
+                                session.send('Sorry, I could not find the any locations to eat .', results.response);
+                            }
+                            var card = new builder.HeroCard(session)
+                                .title(location.name)
+                                .subtitle(location.vicinity)
+                                .images([builder.CardImage.create(session, response.headers.location)])
+                                .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
+                            console.log('push card');
+                            cards.push(card);
                         }
                     });
+                    console.log(cards)
                     var reply = new builder.Message(session)
                         .attachmentLayout(builder.AttachmentLayout.carousel)
                         .attachments(cards);
