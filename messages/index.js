@@ -28,9 +28,8 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 
 
 var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag! Try me, I dare you.<br/>" +
-    '<br/><br/>Some examples are:<br/>'+
+    '<br/>Some examples are:<br/>'+
     '- When is Blaudzun playing?<br/>' +
-    '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
     '- What hiphop band is playing tonight at 21:00?<br/>' +
     "Questions which I can't answer, will be rooted to my real-life friends.";
