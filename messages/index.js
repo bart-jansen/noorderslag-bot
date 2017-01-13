@@ -450,6 +450,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                 }
                             }
                         } catch (e) {
+                            session.send('getting catch' + e);
                         } //just for ending the loop early
 
                         if (cards.length != 0) {
