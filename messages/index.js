@@ -12,6 +12,7 @@ var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
+var parseXML = require('xml-parser');
 var async = require("async");
 
 var request = require('request');
@@ -43,6 +44,27 @@ var luisAPIKey = process.env.LuisAPIKey;
 var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
+
+var MicrosoftCognitiveServicesAPIKey = process.env.MicrosoftCognitiveServicesAPIKey;
+var translationToken = null;
+function getAndSaveTranslationAPIToken(callback){
+    request.post({
+        url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
+        qs: {
+            "Subscription-Key": MicrosoftCognitiveServicesAPIKey
+        }
+    },
+    function (error, response, body) {
+        if (error) {
+            return console.log(error);
+            if (callback) return callback(error);
+        }
+        translationToken = body;
+        console.log('Saved translationToken');
+        if (callback) return callback(null);
+    })
+}
+getAndSaveTranslationAPIToken();
 
 //load json
 var fs = require("fs");
@@ -614,6 +636,75 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
 
 bot.dialog('/', intents);
+
+function detectLanguage(text, callback) {
+    request.get({
+        url: 'https://api.microsofttranslator.com/v2/http.svc/Detect',
+        qs: {text: text},
+        auth: {
+            'bearer': translationToken
+        }
+    }, function (error, response, body) {
+        if (error) {
+            console.log('Error while detecting the language');
+            getAndSaveTranslationAPIToken(function () {detectLanguage(text, callback)});
+            return;
+        }
+        var lang = parseXML(body).root.content;
+        return callback(null, lang);
+    });
+}
+
+function translateToEnglish(text, fromLanguage, callback) {
+    request.get({
+        url: 'https://api.microsofttranslator.com/v2/http.svc/Translate',
+        qs: {text: text, from: fromLanguage, to: 'en'},
+        auth: {
+            'bearer': translationToken
+        }
+    }, function(error, response, body){
+        console.log('callback translateToEnglish');
+        if (error) {
+            console.log('Error while translating the input');
+            getAndSaveTranslationAPIToken(function () {translateToEnglish(text, from, callback)});
+            return;
+        }
+        var translatedText = parseXML(body).root.content;
+        console.log('Translated text:' + translatedText);
+        return callback(null, translatedText);
+    });
+}
+
+bot.use({
+    receive: function (event, next) {
+        if (! event.text) {
+            return next();
+        }
+        else if (! event.textLocale) {
+            console.log('detecting locale');
+            detectLanguage(event.text, function(error, language) {
+                console.log('Locale detected:' + language);
+                event.textLocale = language;
+                event.originalText = event.text
+                if (language == 'en') return next();
+                translateToEnglish(event.text, language, function (error, translatedText) {
+                    event.originalText = event.text;
+                    event.text = translatedText;
+                    return next();
+                });
+            });
+        }
+        else if (event.textLocale != 'en') {
+            translateToEnglish(event.text, event.textLocale, function (error, translatedText) {
+                event.text = translatedText;
+                return next();
+            });
+        }
+        else {
+            return next();
+        }
+    }
+})
 
 
 function createCard(session, eventData) {
