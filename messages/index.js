@@ -279,13 +279,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             }
             else if(venueSearch.length > 1) {
-                session.send('Which venue do you mean?');
-                venueSearch.forEach(function(venue) {
-                    session.send('- ' + venue)
-                });
-
-
-                builder.Prompts.choice(session, "What is the right one?", venueSearch);
+                builder.Prompts.choice(session, "Which venue do you mean?", venueSearch);
             }
             else {
                 session.send('I can\'t find it. Sorry.');
@@ -293,7 +287,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }, function (session, results) {
         if (results.response) {
-
+            session.send(results.response);
             var foundEvents = functions.searchEventByVenue(results.response.entity);
 
             var cards = [];
