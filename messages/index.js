@@ -206,12 +206,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that time..')
+                    // session.send('Unfortunately nobody is playing at that time..')
                 }
             }
         }
         else {
-            session.send('venue');
+            // session.send('venue');
         }
     }])
     .matches('getLocation', [function (session) {
