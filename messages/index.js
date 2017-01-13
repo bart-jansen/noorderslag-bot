@@ -58,6 +58,11 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+/*
+foodCategory global
+not nice, no priority at this moment to do it otherwise
+*/
+
 var foodCategory={};
 var darkSkyKey = process.env.DarkSkyKey;
 var darkSkyLatLng = process.env.DarkSkyLatLng;
@@ -250,7 +255,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){
+        if(!foodCategory){NODE_ENV=development
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
@@ -276,9 +281,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-
+            var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza',
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword='+dumFoodCategory.entity,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
