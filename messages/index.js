@@ -141,10 +141,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }])
 
-    .matches('getTimetable', [function (session, args, next)  {
-        session.send(JSON.stringify(session.message));
-
-
+    .matches('getTimetable', [function (session, args, next) {
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
@@ -206,7 +203,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
+            session.send('searching venues');
             var venueSearch = searchVenue(session.dialogData.data.venue);
+
+            session.send(venueSearch.length);
 
             if(venueSearch.length === 1) {
                 session.send('found 1 matching venue!' +  JSON.stringify(venueSearch))
