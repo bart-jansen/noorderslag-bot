@@ -156,6 +156,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
           timestampOffset: + time.getTimezoneOffset()
         };
 
+        session.send('testing');
+
         // Prompt for title
         if (!data.venue && !data.time) {
             builder.Prompts.text(session, 'What venue are you looking for?');
