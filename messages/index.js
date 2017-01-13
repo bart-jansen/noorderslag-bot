@@ -20,7 +20,7 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
+var HELP_TEXT = 'Hi there, my name is Peter! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
             'Some examples are:<br/>'+
             '- When is blaudzun playing?<br/>' +
             '- Who is playing near me?<br/>' +
