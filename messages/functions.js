@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
