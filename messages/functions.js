@@ -8,7 +8,7 @@ var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Keld
 function searchEventByVenue(venue) {
     var foundEvents = [];
     events.forEach(function(event) {
-        if(event.location == venue) {
+        if(event.location == venue && (event.end*1000) > new Date().getTime()) {
             foundEvents.push(event);
         }
     });

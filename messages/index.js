@@ -249,7 +249,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
-
             next();
         }
     },
@@ -421,7 +420,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
-                    session.send('Oops! That place I knew is gone...');
+                    session.send('testOops! That place I knew is gone...');
                 } else {
                     json = JSON.parse(body);
                     if (json.results || json.results.length > 0) {
@@ -464,7 +463,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                             session.send(reply);
                         } else {
-                            session.send('Oops! That place I knew is gone...');
+                            session.send('Oop2s! That place I knew is gone...');
                         }
                     } else {
                         session.send('Oops! That place I knew is gone...');
