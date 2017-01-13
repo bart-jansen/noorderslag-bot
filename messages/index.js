@@ -543,7 +543,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
     function(session, results, next) {
         // Get results from JSON
-        var m = new Matcher({values: venuesSimple,threshold: 6});
+        var m = new Matcher({values: venuesSimple,threshold: 3});
         var v = m.list(results.response);
         var optionList = []
         if(v.length > 1) {
@@ -567,12 +567,21 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function(session, results, next){
         console.log(results);
         session.send('Here are directions to ' + results.response.entity);
-        builder.HeroCard(session)
+        var venueContent = fs.readFileSync(__dirname + '/data/venues.json');
+        var venues = JSON.parse(venueContent);
+        var json_result = {};
+        venues.forEach(function(venue){
+            if(venue.name == results.response.entity){
+                json_result = venue;
+            }
+        });
+        var card = new builder.HeroCard(session)
           .title(results.response.entity)
-          // .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
-          // .text(eventData.text)
-          .images([builder.CardImage.create(session, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt9a7el0N4VsBFh-rP4sd5lbyCqCBFCbM8xI4ZvAZS7VbbhCyRu8o1Y07S')])
-          .buttons([builder.CardAction.openUrl(session, 'https://maps.google.com', 'Go there now')]);
+          .subtitle('Eurosonic Noorderslag 2017 Venue')
+          .buttons([builder.CardAction.openUrl(session, 'https://maps.google.com?daddr=' + json_result.lat + ',' + json_result.lng, 'Go there now')]);
+
+        var msg = new builder.Message(session).addAttachment(card);
+        session.send(msg);
     }])
 
     .onDefault((session) => {
