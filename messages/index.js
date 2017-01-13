@@ -397,7 +397,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 }
             });
         } else {
-            session.send('Oops! That place I knew is gone...');
+            session.send('You did not give me a real location.');
         }
     }])
     .matches('getWeatherData', [function (session, args, next)  {
