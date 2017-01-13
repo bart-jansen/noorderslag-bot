@@ -58,18 +58,65 @@ var getByGenre = require('./intents/get-by-genre');
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
+var venues = JSON.parse(fs.readFileSync(__dirname + '/data/venues.json'));
+var venuesSimple = []
+venues.forEach(function(venue) {
+    venuesSimple.push(venue.name);
+});
+//var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
 var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
 var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
-var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
 
 events.forEach(function(event) {
     artists.push(event.description);
 });
 
 var m = new Matcher({values: artists,threshold: 3});
+
+// add lineup from artist with genres, thats not in the events
+var esnsLineUp = {};
+
+var lineUpContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var esLineUp = JSON.parse(lineUpContents);
+
+var gdActs={};
+var gdCountries={};
+var gdDumNaam='';
+Object.keys(esLineUp).forEach(function (key) {
+    switch (key) {
+        case 'acts':
+
+            for(var i=0;i<esLineUp['acts'].length;i++){
+                gdDumNaam=esLineUp['acts'][i]['title'];
+                gdActs[gdDumNaam]={};
+
+                gdActs[gdDumNaam]['naam']=esLineUp['acts'][i]['title'];
+                if(esLineUp['acts'][i]['countries'].length>0){
+                    gdActs[gdDumNaam]['country']=esLineUp['acts'][i]['countries'][0];
+                }else{
+                    gdActs[gdDumNaam]['country']='';
+                }
+
+                if(esLineUp['acts'][i]['tagLabels']){
+                    gdActs[gdDumNaam]['genre']=esLineUp['acts'][i]['tagLabels'].join();
+                }else{
+                    gdActs[gdDumNaam]['genre']='';
+                }
+            }
+
+            break;
+        case 'countries':
+            gdCountries=esLineUp['countries'];
+            break;
+        case 'default':
+            break;
+    }
+
+
+});
 
 /*
 foodCategory global
@@ -514,6 +561,56 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+    .matches('goToVenue', [function(session,args,next){
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+        if(!venue){
+            builder.Prompts.text(session, "What venue do you want to go to?");
+        } else {
+            next({response: venue.entity})
+        }
+    },
+    function(session, results, next) {
+        // Get results from JSON
+        var m = new Matcher({values: venuesSimple,threshold: 3});
+        var v = m.list(results.response);
+        var optionList = []
+        if(v.length > 1) {
+            session.send('Which venue do you mean?');
+            v.forEach(function (venue) {
+                optionList.push(venue.value);
+                session.send('- ' + venue.value)
+            });
+
+
+            builder.Prompts.choice(session, "Which venue?", optionList);
+        }
+        else if(v.length == 1) {
+            next({response: {entity: v[0].value}})
+        }
+        else {
+            session.send('I could not find that venue')
+        }
+
+    },
+    function(session, results, next){
+        console.log(results);
+        session.send('Here are directions to ' + results.response.entity);
+        var venueContent = fs.readFileSync(__dirname + '/data/venues.json');
+        var venues = JSON.parse(venueContent);
+        var json_result = {};
+        venues.forEach(function(venue){
+            if(venue.name == results.response.entity){
+                json_result = venue;
+            }
+        });
+        var card = new builder.HeroCard(session)
+          .title(results.response.entity)
+          .subtitle('Eurosonic Noorderslag 2017 Venue')
+          .buttons([builder.CardAction.openUrl(session, 'https://maps.google.com?daddr=' + json_result.lat + ',' + json_result.lng, 'Go there now')]);
+
+        var msg = new builder.Message(session).addAttachment(card);
+        session.send(msg);
+    }])
 
   .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
 	.matches('getWillRain', [
