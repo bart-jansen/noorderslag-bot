@@ -50,9 +50,15 @@ var request = require('request');
 
 var functions = require('./functions');
 
+// intents
+var getByGenre = require('./intents/get-by-genre');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
+
+var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
@@ -487,7 +493,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
-
+    .matches('getByGenre', getByGenre(lineup))
     .onDefault((session) => {
         session.sendTyping();
         request.post({
