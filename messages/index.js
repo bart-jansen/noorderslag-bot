@@ -188,7 +188,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send(moment(time).isValid() ? 'valid date' : 'not valid date');
+        session.send(moment(time).isValid() ? 'valid dateje' : 'not valid date');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
