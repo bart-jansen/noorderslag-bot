@@ -80,6 +80,16 @@ function getArtist(artistName) {
 
     return returnVal;
 }
+function searchVenue(searchString) {
+    var venueList = [];
+    venues.forEach(function(venue) {
+        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
+            venueList.push(venue);
+        }
+    });
+
+    return venueList;
+}
 
 function searchVenue(searchString) {
     var venueList = [];
@@ -88,7 +98,6 @@ function searchVenue(searchString) {
             // count++;
             venueList.push(venue);
             // console.log('found match');
-
         }
 
         return venueList;
