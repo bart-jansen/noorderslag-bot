@@ -491,7 +491,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
-    .matches('getByGenre', getByGenre(lineup))
+    .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
     .onDefault((session) => {
         session.sendTyping();
         request.post({
