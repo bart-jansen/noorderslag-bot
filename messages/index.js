@@ -31,7 +31,8 @@ var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know 
     'Try me, I dare you. Some examples are:<br/>'+
     '- When is blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
-    '- Who is playing tomorrow at 21:00?';
+    '- Who is playing tomorrow at 21:00?<br/>' +
+    'Questions which i cannot answer, will be rooted to my real-life friends.';
 
 var bot = new builder.UniversalBot(connector);
 
