@@ -251,7 +251,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         if(!foodCategory){
-            builder.Prompts.text(session, "What kind of food are you looking for?");
+            builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
 
@@ -259,7 +259,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
       function(session, results){
           var options = {
-              prompt: "I will try to find a place where you can eat " + results.response + "! Where are you now?",
+              prompt: capitalize(results.response) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
               requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -282,7 +282,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
-                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                    session.send('Oops! That place I knew is gone...');
                 } else {
                     json = JSON.parse(body);
                     if (json.results || json.results.length > 0) {
@@ -309,7 +309,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                             .title(location.name)
                                             .subtitle(location.vicinity)
                                             .images([builder.CardImage.create(session, response.headers.location)])
-                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
+                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
                                         console.log('push card');
                                         cards.push(card);
                                     }
@@ -325,15 +325,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                             session.send(reply);
                         } else {
-                            session.send('1 Sorry, I could not find the any locations to eat .', results.response);
+                            session.send('Oops! That place I knew is gone...');
                         }
                     } else {
-                        session.send('1 Sorry, I could not find the any locations to eat .', results.response);
+                        session.send('Oops! That place I knew is gone...');
                     }
                 }
             });
         } else {
-            session.send('2 Sorry, I could not find the any locations to eat .', results.response);
+            session.send('Oops! That place I knew is gone...');
         }
     }])
     .matches('getWeatherData', [function (session, args, next)  {
@@ -477,4 +477,12 @@ if (useEmulator) {
     server.post('/api/messages', connector.listen());
 } else {
     module.exports = { default: connector.listen() }
+}
+
+function capitalize(str) {  
+  if (str.length) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
+  } else {
+    return '';
+  }
 }
