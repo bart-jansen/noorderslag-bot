@@ -417,6 +417,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     if (json.results || json.results.length > 0) {
                         var cards = [];
 
+                        session.send(JSON.stringify(json.results));
+
 
                         for (var i = 0; i < Math.min(json.results.length, 5); i++) {
                             var location = json.results[i]
