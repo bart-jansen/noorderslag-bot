@@ -190,7 +190,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    // session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time..')
                 }
             }
         }
@@ -202,7 +202,26 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             if(venueSearch.length === 1) {
                 session.send('found 3fm stage' + venueSearch[0]);
 
-                session.send(JSON.stringify(functions.searchEventByVenue(venueSearch[0])));
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                if(cards.length > 0) {
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue..')
+                }
+
             }
             else if(venueSearch.length > 1) {
                 session.send('Which venue do you mean?');
