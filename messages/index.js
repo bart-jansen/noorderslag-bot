@@ -150,11 +150,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
 
     .matches('getTimetable', [function (session, args, next)  {
-        session.send('test');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send('testing123');
 
         // if(!session.dialogData) {
         //     session.dialogData = {};
@@ -340,7 +338,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             json: true
         }, function(error, response, body ){
            if (error || response.statusCode != 200 || body.score < 90 ) {
-                session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?', 'Sure. Please talk again and try to understand me ;)',"I'm still broke from last night. Please, can you be more specific?"]
+
+                session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
+                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
             }
             else{
                 session.send(body.answer)
