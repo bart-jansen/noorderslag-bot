@@ -283,7 +283,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var lat = results.response['geo']['latitude'];
             var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword='+dumFoodCategory.entity,
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+dumFoodCategory.entity,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
