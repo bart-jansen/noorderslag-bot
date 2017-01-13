@@ -413,10 +413,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send('results' + JSON.stringify(results.response));
 
             session.send('category' + JSON.stringify(category));
-            session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+category);
+            session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
 
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+category
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza'
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
