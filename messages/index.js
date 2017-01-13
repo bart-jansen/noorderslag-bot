@@ -7,10 +7,12 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 // "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
-var locationDialog = require('botbuilder-location');
+var locationDialog = require('ivo-botbuilder-location');
 var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
+var youtube = require("youtube-api");
+var async = require("async");
 
 var request = require('request');
 var syncRequest = require('sync-request');
@@ -24,11 +26,12 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Sonic! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?';
+
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+    'Try me, I dare you. Some examples are:<br/>'+
+    '- When is blaudzun playing?<br/>' +
+    '- Who is playing near me?<br/>' +
+    '- Who is playing tomorrow at 21:00?';
 
 var bot = new builder.UniversalBot(connector);
 
@@ -43,6 +46,8 @@ const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisApp
 var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
+
+var functions = require('./functions');
 
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
@@ -80,6 +85,8 @@ var forecast = new Forecast({
   }
 });
 
+var youtubeApiKey = process.env.YoutubeApiKey;
+
 function getArtist(artistName) {
     var returnVal;
 
@@ -88,20 +95,6 @@ function getArtist(artistName) {
     }
 
     return returnVal;
-}
-
-function searchVenue(searchString) {
-    var venueList = [];
-    venues.forEach(function(venue) {
-        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            // count++;
-            venueList.push(venue);
-            // console.log('found match');
-
-        }
-
-        return venueList;
-    })
 }
 
 function findEvents(searchTime, endTime) {
@@ -118,6 +111,33 @@ function findEvents(searchTime, endTime) {
     });
 
     return foundEvents;
+}
+
+function getSong(band, callback) {
+    request.get({
+        url: 'https://api.spotify.com/v1/search',
+        qs: {
+            q: band,
+            type: 'artist,track'
+        }
+    },
+    function (error, response, body) {
+        body = JSON.parse(body);
+        callback(error, body);
+    });
+}
+
+function getVideos(artistName, callback) {
+    youtube.search.list({
+        part: 'snippet',
+        type: 'video',
+        order: 'viewCount',
+        maxResults: 3,
+        q: artistName,
+        key: youtubeApiKey
+    }, function(error, request, response) {
+        callback(error, response.body.items);
+    });
 }
 
 // Main dialog with LUIS
@@ -154,32 +174,24 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
+
     .matches('getTimetable', [function (session, args, next)  {
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        session.send('testing');
-
-        // Prompt for title
-        if (!data.venue && !data.time) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
         } else {
             next({ response: venue.entity });
         }
     },
     function (session, results) {
-        session.send(results.response);
-
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -208,7 +220,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 foundEvents.forEach(function (event) {
                     cards.push(createCard(session, event));
                 });
-                console.log('test');
 
                 if(cards.length > 0) {
 
@@ -220,12 +231,49 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    // session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time..')
                 }
             }
         }
         else {
-            // session.send('venue');
+            session.send('venue search' + session.dialogData.data.venue);
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
+            session.send(JSON.stringify(venueSearch));
+
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
+
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
+
+                if(cards.length > 0) {
+
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue..')
+                }
+
+            }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
+            }
+            else {
+                session.send('cant find venue...');
+            }
+
         }
     }])
     .matches('getLocation', [function (session) {
@@ -371,41 +419,59 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         },
         function (session, results) {
-            if (! results.response) {
+            if (!results.response) {
                 session.send('Ok');
             }
             var eventData = getArtist(results.response);
 
-            if(!eventData) {
+            if (!eventData) {
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
+
             var band = eventData.description;
 
-            request.get({
-                url: 'https://api.spotify.com/v1/search',
-                qs: {
-                    q: band,
-                    type: 'artist,track'
-                }
-            },
-            function (error, response, body) {
-                if (error || response.statusCode != 200) {
-                    session.send('Sorry, there was an error.');
-                }
-                body = JSON.parse(body);
-                songSpotifyURL = body.artists.items[0].external_urls.spotify;
-                imageURL = body.artists.items[0].images[0].url;
-                var card = new builder.HeroCard(session)
-                    .title(band)
-                    .text(eventData.text)
-                    .images([builder.CardImage.create(session, imageURL)])
-                    .buttons([
-                        builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
-                    ]);
+            async.parallel([
+                function(callback) {
+                    getSong(band, function(error, songData) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
+                        var card = createSongCard(session, songData, eventData);
+                        callback(null, card);
+                    });
+                },
+                function(callback) {
+                    getVideos(eventData.description, function(error, videos) {
+                        if(error) {
+                            callback(error);
+                            return;
+                        }
+                        var msg = new builder.Message(session);
+                        var cards = [];
+                        videos.forEach(function(videoData) {
+                            var card = createVideoCard(session, videoData);
+                            cards.push(card);
+                        });
+                        callback(null, cards);
+                    });
+                }],
+                function(error, results) {
+                    if (error) {
+                        session.send('Sorry, there was an error.');
+                        return;
+                    }
 
-                session.send(new builder.Message(session).addAttachment(card));
-            });
+                    var cards = [];
+                    cards.push(results[0]);
+                    cards = cards.concat(results[1]);
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+                    session.send(reply);
+                }
+            );
         }
     ])
 
@@ -422,7 +488,17 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             json: true
         }, function(error, response, body ){
            if (error || response.statusCode != 200 || body.score < 90 ) {
-                session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+                var randomMsgs = ['Sorry. I did not understand you. Or are you a little drunk?',
+                'Sure. Please talk again and try to understand me ;)',
+                "I'm still broke from last night. Please, can you be more specific?",
+                "I am not as smart as you, what do you mean?",
+                "You are amazing! But I am afraid I don't know what you mean.",
+                "I don't know. Can I help you with anything else?",
+                "This is above my paygrade, topsecret",
+                "I wanna help, but I don't know how"]
+
+                session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
+                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
             }
             else{
                 session.send(body.answer)
@@ -473,6 +549,29 @@ function createWeatherCards(session, weatherData) {
     }
     return cards;
 }
+
+function createSongCard(session, songData, eventData) {
+    var songSpotifyURL = songData.artists.items[0].external_urls.spotify;
+    var imageURL = songData.artists.items[0].images[0].url;
+    var card = new builder.HeroCard(session)
+        .title(eventData.description)
+        .text(eventData.text)
+        .images([builder.CardImage.create(session, imageURL)])
+        .buttons([
+            builder.CardAction.openUrl(session, songSpotifyURL, 'Play on Spotify')
+        ]);
+    return card;
+}
+
+function createVideoCard(session, videoData) {
+    var card = new builder.HeroCard(session)
+        .title(videoData.snippet.title)
+        .text(videoData.snippet.description)
+        .images([builder.CardImage.create(session, videoData.snippet.thumbnails.high.url)])
+        .buttons([builder.CardAction.openUrl(session, 'https://youtu.be/' + videoData.id.videoId, 'Play video')]);
+    return card;
+}
+
 if (useEmulator) {
     var restify = require('restify');
     var server = restify.createServer();
@@ -484,7 +583,7 @@ if (useEmulator) {
     module.exports = { default: connector.listen() }
 }
 
-function capitalize(str) {  
+function capitalize(str) {
   if (str.length) {
     return str[0].toUpperCase() + str.substr(1).toLowerCase();
   } else {
