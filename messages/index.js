@@ -144,81 +144,85 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("Ok");
         }
     }])
-    .matches('getTimetable', [function (session, args, next)  {
-        session.send('test');
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
-        var time = builder.EntityRecognizer.resolveTime(args.entities);
 
-        var data = session.dialogData.data = {
-          venue: venue ? venue.entity : null,
-          time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
-          timestampOffset: + time.getTimezoneOffset()
-        };
-
+    .matches('getTimetable', function(session, args) {
         session.send('getting timetable');
+    })
+    // .matches('getTimetable', [function (session, args, next)  {
+    //     session.send('test');
+    //     var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+    //     // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
+    //     var time = builder.EntityRecognizer.resolveTime(args.entities);
 
-        // Prompt for title
-        if (!data.venue && !data.time) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
-        } else {
-            next({ response: venue.entity });
-        }
-    },
-    function (session, results) {
-        session.send(results.response);
+    //     var data = session.dialogData.data = {
+    //       venue: venue ? venue.entity : null,
+    //       time: time ? time.toString() : null,
+    //       timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null, //timezone diff with UTC
+    //       timestampOffset: + time.getTimezoneOffset()
+    //     };
 
-        session.send(JSON.stringify(session.dialogData.data));
+    //     session.send('getting timetable');
 
-        if(session.dialogData && session.dialogData.data.time) {
-            if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
-                //look for full day
-                session.send('full day');
+    //     // Prompt for title
+    //     if (!data.venue && !data.time) {
+    //         builder.Prompts.text(session, 'What venue are you looking for?');
+    //     } else {
+    //         next({ response: venue.entity });
+    //     }
+    // },
+    // function (session, results) {
+    //     session.send(results.response);
 
-                var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
+    //     session.send(JSON.stringify(session.dialogData.data));
 
-                var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
+    //     if(session.dialogData && session.dialogData.data.time) {
+    //         if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
+    //             //look for full day
+    //             session.send('full day');
 
-                var cards = [];
-                foundEvents.forEach(function (event) {
-                    cards.push(createCard(session, event));
-                });
+    //             var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
-                // create reply with Carousel AttachmentLayout
-                var reply = new builder.Message(session)
-                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                    .attachments(cards);
+    //             var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
 
-                session.send(reply);
-            }
-            else {
-                var foundEvents = findEvents(session.dialogData.data.timestamp);
+    //             var cards = [];
+    //             foundEvents.forEach(function (event) {
+    //                 cards.push(createCard(session, event));
+    //             });
 
-                var cards = [];
-                foundEvents.forEach(function (event) {
-                    cards.push(createCard(session, event));
-                });
-                console.log('test');
+    //             // create reply with Carousel AttachmentLayout
+    //             var reply = new builder.Message(session)
+    //                 .attachmentLayout(builder.AttachmentLayout.carousel)
+    //                 .attachments(cards);
 
-                if(cards.length > 0) {
+    //             session.send(reply);
+    //         }
+    //         else {
+    //             var foundEvents = findEvents(session.dialogData.data.timestamp);
 
-                    // create reply with Carousel AttachmentLayout
-                    var reply = new builder.Message(session)
-                        .attachmentLayout(builder.AttachmentLayout.carousel)
-                        .attachments(cards);
+    //             var cards = [];
+    //             foundEvents.forEach(function (event) {
+    //                 cards.push(createCard(session, event));
+    //             });
+    //             console.log('test');
 
-                    session.send(reply);
-                }
-                else {
-                    // session.send('Unfortunately nobody is playing at that time..')
-                }
-            }
-        }
-        else {
-            // session.send('venue');
-        }
-    }])
+    //             if(cards.length > 0) {
+
+    //                 // create reply with Carousel AttachmentLayout
+    //                 var reply = new builder.Message(session)
+    //                     .attachmentLayout(builder.AttachmentLayout.carousel)
+    //                     .attachments(cards);
+
+    //                 session.send(reply);
+    //             }
+    //             else {
+    //                 // session.send('Unfortunately nobody is playing at that time..')
+    //             }
+    //         }
+    //     }
+    //     else {
+    //         // session.send('venue');
+    //     }
+    // }])
     .matches('getLocation', [function (session) {
             var options = {
                 prompt: "I will try to find some parties close to you! Where are you currently located?",
