@@ -142,6 +142,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
+        session.send(JSON.stringify(session));
+
+
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
