@@ -162,6 +162,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             var eventData = getArtist(results.response);
 
+            session.send(JSON.stringify(eventData));
+
             if(eventData.length > 0) {
                 var card = createCard(session, eventData);
 
