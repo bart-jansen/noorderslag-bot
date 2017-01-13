@@ -22,10 +22,10 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 
 
 var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
-            'Try me, I dare you. Some examples are:<br/>'+
-            '- When is blaudzun playing?<br/>' +
-            '- Who is playing near me?<br/>' +
-            '- Who is playing tomorrow at 21:00?';
+    'Try me, I dare you. Some examples are:<br/>'+
+    '- When is blaudzun playing?<br/>' +
+    '- Who is playing near me?<br/>' +
+    '- Who is playing tomorrow at 21:00?';
 
 var bot = new builder.UniversalBot(connector);
 
@@ -146,10 +146,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }])
 
-    // .matches('getTimetable', function(session, args) {
-
-
-
     .matches('getTimetable', [function (session, args, next)  {
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
@@ -212,7 +208,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            session.send('venue');
+
+            session.send('venue' +  session.dialogData.data.venue);
         }
     }])
     .matches('getLocation', [function (session) {
