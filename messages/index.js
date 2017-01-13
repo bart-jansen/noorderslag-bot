@@ -27,11 +27,12 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 });
 
 
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
-    'Try me, I dare you. Some examples are:<br/>'+
-    '- When is blaudzun playing?<br/>' +
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag! Try me, I dare you.<br/>" +
+    '<br/><br/>Some examples are:<br/>'+
+    '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
-    '- Who is playing tomorrow at 21:00?';
+    '- Who is playing tomorrow at 21:00?<br/>' +
+    "Questions which I can't answer, will be rooted to my real-life friends.";
 
 var bot = new builder.UniversalBot(connector);
 
@@ -49,6 +50,9 @@ var request = require('request');
 
 var functions = require('./functions');
 
+// intents
+var getByGenre = require('./intents/get-by-genre');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -59,6 +63,8 @@ venues.forEach(function(venue) {
     venuesSimple.push(venue.name);
 });
 //var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
+var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
@@ -67,7 +73,7 @@ events.forEach(function(event) {
     artists.push(event.description);
 });
 
-var m = new Matcher({values: artists,threshold: 6});
+var m = new Matcher({values: artists,threshold: 3});
 
 // add lineup from artist with genres, thats not in the events
 var esnsLineUp = {};
@@ -214,36 +220,41 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(msg);
             }
             else {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('cant find artist');
+                // session.send('Oops, I can\'t find the artist \'%s\'.', result.response);
             }
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
-            session.send("Ok");
+            session.send("Cannot get band");
         }
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
+
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
+        session.send(moment(time).isValid() ? 'valid dateje' : 'not valid date');
+
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
-          time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
+          time: time ? (moment(time).isValid() ? time.toString() : (new Date()).toString()) : null,
+          timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
 
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
-            next({ response: venue.entity });
+
+            next();
         }
     },
     function (session, results) {
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
-                session.send('full day');
+                session.send('Here is the whole day. That\'s a lot!');
 
                 var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
@@ -279,17 +290,16 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time.')
                 }
             }
         }
         else {
-            session.send('venue search' + session.dialogData.data.venue);
             var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
-                session.send('found 3fm stage' + venueSearch[0]);
+                session.send('found ' + venueSearch[0]);
 
                 var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
@@ -308,7 +318,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that venue..')
+                    session.send('Unfortunately nobody is playing at that venue.')
                 }
 
             }
@@ -319,25 +329,42 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 });
 
 
-                builder.Prompts.choice(session, "Which venue?", venueSearch);
+                builder.Prompts.choice(session, "What is the right one?", venueSearch);
             }
             else {
-                session.send('cant find venue...');
+                session.send('I can\'t find it. Sorry.');
             }
         }
     }, function (session, results) {
         if (results.response) {
-            session.send('jahoor');
-            session.send(results.response.entity);
-            var region = salesData[results.response.entity];
-            session.send("We sold %(units)d units for a total of %(total)s.", region);
+
+            var foundEvents = functions.searchEventByVenue(results.response.entity);
+
+            var cards = [];
+            foundEvents.forEach(function (event) {
+                cards.push(createCard(session, event));
+            });
+
+            if(cards.length > 0) {
+
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
+
+                session.send(reply);
+            }
+            else {
+                session.send('Unfortunately nobody is playing at that venue.')
+            }
+
         } else {
             session.send("ok");
         }
     }])
     .matches('getLocation', [function (session) {
             var options = {
-                prompt: "I will try to find some parties close to you! Where are you currently located?",
+                prompt: "I will try to find some great music close to you! Where are you now?",
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
@@ -472,7 +499,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         function (session, args, next)  {
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
             if (!band) {
-                builder.Prompts.text(session, "What artist/band are you looking for?");
+                builder.Prompts.text(session, "What artist or band are you looking for?");
             } else {
                 next({ response: band.entity });
             }
@@ -484,7 +511,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var eventData = getArtist(results.response);
 
             if (!eventData) {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('Oops, I can\'t find \'%s\'.', results.response);
                 return;
             }
 
@@ -583,6 +610,66 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var msg = new builder.Message(session).addAttachment(card);
         session.send(msg);
     }])
+	.matches('getWillRain', [
+         function (session, args, next)  {
+             
+            var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
+            //console.log(band);
+            if (!band) {
+                builder.Prompts.text(session, "During what artist/band are you looking for?");
+            } else {
+                next({ response: band.entity });
+            }
+        },
+        function (session, results)  {
+            if (! results.response) {
+                session.send('Ok');
+            }
+            var eventData = getArtist(results.response);
+
+            if(!eventData) {
+                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                return;
+            }
+           
+
+            session.sendTyping();
+            var latlngTime = darkSkyLatLng.split(",");
+
+            var timestamp = (eventData.start+eventData.end)/2;
+            timestamp += 60*60;//UTC to UTC+1            
+            latlngTime.push(timestamp );
+
+            // var time = builder.EntityRecognizer.resolveTime(args.entities);
+            forecast.get(latlngTime, function(err, weather) { // get forecast data from Dark Sky
+            if(err) return console.dir(err);
+                var gifUrl = "";
+                var cardText = "No it will probably not rain "+eventData.description;
+
+            if(weather.currently.summary.toLowerCase().indexOf("rain") !== -1 || weather.currently.icon == 'rain'){
+                gifUrl = "http://www.reactiongifs.us/wp-content/uploads/2013/06/raining_david_tennant.gif";
+                cardText = "Yes it will rain during "+eventData.description;
+            }
+            else if(weather.currently.summary.toLowerCase().indexOf("snow") !== -1|| weather.currently.icon == 'snow'){
+                gifUrl = "https://media.giphy.com/media/xTcnTehwgRcbgymhTW/giphy.gif";
+                cardText = "Yes it will snow during "+eventData.description;
+            }
+
+
+           if( gifUrl ) {
+                var radarReply = new builder.Message(session)
+                .attachments([{
+                    contentType: 'image/gif',
+                    contentUrl: gifUrl
+                }]);
+                session.send(radarReply); 
+           }
+           session.send(cardText);
+
+        });
+    }])
+
+    .matches('getByGenre', getByGenre(lineup))
 
     .onDefault((session) => {
         session.sendTyping();
@@ -614,12 +701,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(body.answer)
             }
         });
-    })
-    .onBegin(function (session, args, next) {
-        // session.dialogData.name = args.name;
-        session.send(HELP_TEXT);
-        next();
     });
+    // .onBegin(function (session, args, next) {
+    //     // session.dialogData.name = args.name;
+    //     session.send(HELP_TEXT);
+    //     next();
+    // });
 
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
 
