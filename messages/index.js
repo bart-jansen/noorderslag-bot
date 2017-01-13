@@ -82,11 +82,12 @@ function getArtist(artistName) {
 }
 function searchVenue(searchString) {
     var venueList = [];
-    venues.forEach(function(venue) {
-        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            venueList.push(venue);
+
+    for(var i = 0; i < venues.length; i++) {
+        if(venues[i].toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
+            venueList.push(venues[i]);
         }
-    });
+    }
 
     return venueList;
 }
@@ -204,8 +205,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
         else {
             session.send('venue search' + session.dialogData.data.venue);
-            var venueSearch = searchVenue(session.dialogData.data.venue);
-
+            var venueSearch = searchVenue(session.dialogData.data.venue.toString());
+            session.send('yolo');
             if(venueSearch) {
                 session.send(venueSearch.length);
             }
