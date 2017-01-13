@@ -8,10 +8,14 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
+var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
 var async = require("async");
+
+var request = require('request');
+var syncRequest = require('sync-request');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -36,7 +40,7 @@ var luisAppId = process.env.LuisAppId;
 var luisAPIKey = process.env.LuisAPIKey;
 var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
-const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' + luisAppId + '&subscription-key=' + luisAPIKey;
+const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
 
 //load json
 var fs = require("fs");
@@ -59,6 +63,12 @@ events.forEach(function(event) {
 
 var m = new Matcher({values: artists,threshold: 6});
 
+/*
+foodCategory global
+not nice, no priority at this moment to do it otherwise
+*/
+
+var foodCategory={};
 var darkSkyKey = process.env.DarkSkyKey;
 var darkSkyLatLng = process.env.DarkSkyLatLng;
 var darkSkyIconsPrefix = process.env.DarkSkyIconsPrefix;
@@ -291,6 +301,94 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
+    .matches('getFood', [function(session, args, next) {
+        foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        if(!foodCategory){NODE_ENV=development
+            builder.Prompts.text(session, "What do you wanna eat?");
+        } else {
+            next({response: foodCategory.entity })
+
+        }
+    },
+      function(session, results){
+          var options = {
+              prompt: capitalize(results.response) + "! I know a great place! Where are you now?",
+              useNativeControl: true,
+              reverseGeocode: true,
+              requiredFields: locationDialog.LocationRequiredFields.streetAddress |
+              locationDialog.LocationRequiredFields.locality |
+              locationDialog.LocationRequiredFields.postalCode |
+              locationDialog.LocationRequiredFields.country
+          };
+          locationDialog.getLocation(session, options);
+      },
+    function(session, results) {
+
+        if(results.response) {
+            session.sendTyping();
+            var googleMapsApiKey = process.env.GoogleMapsApiKey;
+            var lng = results.response['geo']['longitude'];
+            var lat = results.response['geo']['latitude'];
+            var dumFoodCategory=foodCategory;
+            request.get({
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword='+dumFoodCategory.entity,
+            },
+            function (error, response, body) {
+                if (error || response.statusCode != 200) {
+                    session.send('Oops! That place I knew is gone...');
+                } else {
+                    json = JSON.parse(body);
+                    if (json.results || json.results.length > 0) {
+                        var cards = [];
+
+                        try {
+                            for (var i = 0; i < json.results.length; i++) {
+                                var location = json.results[i]
+                                if (cards.length >= 5) {
+                                    throw BreakException;
+                                }
+                                if (location.photos != undefined && location.photos.length > 0) {
+                                    var response = syncRequest(
+                                        'GET',
+                                        'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
+                                        {
+                                            "followRedirects": false
+                                        }
+                                    );
+                                    if (response.statusCode != 302) {
+                                        console.log('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                    } else {
+                                        var card = new builder.HeroCard(session)
+                                            .title(location.name)
+                                            .subtitle(location.vicinity)
+                                            .images([builder.CardImage.create(session, response.headers.location)])
+                                            .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
+                                        console.log('push card');
+                                        cards.push(card);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                        } //just for ending the loop early
+
+                        if (cards.length != 0) {
+                            var reply = new builder.Message(session)
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(cards);
+
+                            session.send(reply);
+                        } else {
+                            session.send('Oops! That place I knew is gone...');
+                        }
+                    } else {
+                        session.send('Oops! That place I knew is gone...');
+                    }
+                }
+            });
+        } else {
+            session.send('Oops! That place I knew is gone...');
+        }
+    }])
     .matches('getWeatherData', [function (session, args, next)  {
         session.sendTyping();
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
@@ -483,4 +581,12 @@ if (useEmulator) {
     server.post('/api/messages', connector.listen());
 } else {
     module.exports = { default: connector.listen() }
+}
+
+function capitalize(str) {  
+  if (str.length) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
+  } else {
+    return '';
+  }
 }

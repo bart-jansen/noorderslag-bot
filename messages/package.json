@@ -12,7 +12,8 @@
     "forecast": "^0.3.2",
     "moment": "^2.17.1",
     "request": "^2.79.0",
-    "youtube-api": "^2.0.6"
+    "youtube-api": "^2.0.6",
+    "sync-request": "4.0.1"
   },
   "devDependencies": {
     "restify": "^4.1.1"
