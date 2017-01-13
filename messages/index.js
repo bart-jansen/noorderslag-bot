@@ -160,7 +160,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             // // ... save task
             var eventData = getArtist(results.response);
 
-            if(eventData) {
+            if(eventData.length > 0) {
                 var card = createCard(session, eventData);
 
                 var msg = new builder.Message(session).addAttachment(card);
