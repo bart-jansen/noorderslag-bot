@@ -90,20 +90,6 @@ function searchVenue(searchString) {
 
     return venueList;
 }
-
-function searchVenue(searchString) {
-    var venueList = [];
-    venues.forEach(function(venue) {
-        if(venue.toLowerCase().indexOf(searchString.toLowerCase()) !== -1) {
-            // count++;
-            venueList.push(venue);
-            // console.log('found match');
-        }
-
-        return venueList;
-    })
-}
-
 function findEvents(searchTime, endTime) {
     var foundEvents = [];
     events.forEach(function(event) {
