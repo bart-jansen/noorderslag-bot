@@ -154,7 +154,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         session.send(HELP_TEXT);
     })
     .matches('getData', [function (session, args, next)  {
-        session.send('getting data');
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
             builder.Prompts.text(session, "What artist/band are you looking for?");
@@ -163,12 +162,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(results));
         if (results.response) {
             // // ... save task
             var eventData = getArtist(results.response);
 
-            if(eventData.length > 0) {
+            if(eventData) {
                 var card = createCard(session, eventData);
 
                 var msg = new builder.Message(session).addAttachment(card);
