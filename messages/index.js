@@ -41,6 +41,8 @@ var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
 
+var functions = require('./functions');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -210,6 +212,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             if(venueSearch.length === 1) {
                 session.send('found 3fm stage' + venueSearch[0]);
+
+                session.send(JSON.stringify(functions.searchEventByVenue(venueSearch[0])));
             }
 
         }
