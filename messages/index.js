@@ -417,7 +417,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     if (json.results || json.results.length > 0) {
                         var cards = [];
 
-                        try {
+
                             for (var i = 0; i < json.results.length; i++) {
                                 var location = json.results[i]
                                 // if (cards.length >= 5) {
@@ -444,9 +444,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                     }
                                 }
                             }
-                        } catch (e) {
-                            session.send('getting catch' + e);
-                        } //just for ending the loop early
+
 
                         if (cards.length != 0) {
                             var reply = new builder.Message(session)
