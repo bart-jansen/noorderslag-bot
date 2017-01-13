@@ -188,13 +188,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send(moment(time).isValid() ? 'test' : 'new test');
-
+        session.send(moment(time).isValid() ? 'valid date' : 'not valid date');
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
-          time: time ? time.toString() : null,
-          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
+          time: time ? (moment(time).isValid() ? time.toString() : (new Date()).toString()) : null,
+          timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
 
         if (!venue && !time) {
