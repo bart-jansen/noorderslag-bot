@@ -154,6 +154,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         session.send(HELP_TEXT);
     })
     .matches('getData', [function (session, args, next)  {
+        session.send('getting data');
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
             builder.Prompts.text(session, "What artist/band are you looking for?");
@@ -162,6 +163,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     },
     function (session, results) {
+        session.send(JSON.stringify(results));
         if (results.response) {
             // // ... save task
             var eventData = getArtist(results.response);
@@ -178,125 +180,122 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
-            session.send("Ok");
+            session.send("Cannot et band");
         }
     }])
-    .matches('getTimetable', function(session) {
-        session.send('getting time table');
-    })
 
-    // .matches('getTimetable', [function (session, args, next)  {
-    //     var time = builder.EntityRecognizer.resolveTime(args.entities);
-    //     var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+    .matches('getTimetable', [function (session, args, next)  {
+        var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-    //     var data = session.dialogData.data = {
-    //       venue: venue ? venue.entity : null,
-    //       time: time ? time.toString() : null,
-    //       timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
-    //     };
+        var data = session.dialogData.data = {
+          venue: venue ? venue.entity : null,
+          time: time ? time.toString() : null,
+          timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
+        };
 
-    //     if (!venue && !time) {
-    //         builder.Prompts.text(session, "What venue are you looking for?");
-    //     } else {
-    //         next({ response: venue.entity });
-    //     }
-    // },
-    // function (session, results) {
-    //     if(session.dialogData && session.dialogData.data.time) {
-    //         if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
-    //             //look for full day
-    //             session.send('Here is the whole day. That\'s a lot!');
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
+        } else {
+            next({ response: venue.entity });
+        }
+    },
+    function (session, results) {
+        if(session.dialogData && session.dialogData.data.time) {
+            if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
+                //look for full day
+                session.send('Here is the whole day. That\'s a lot!');
 
-    //             var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
+                var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
-    //             var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
+                var foundEvents = findEvents(session.dialogData.data.timestamp, endTime);
 
-    //             var cards = [];
-    //             foundEvents.forEach(function (event) {
-    //                 cards.push(createCard(session, event));
-    //             });
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
 
-    //             // create reply with Carousel AttachmentLayout
-    //             var reply = new builder.Message(session)
-    //                 .attachmentLayout(builder.AttachmentLayout.carousel)
-    //                 .attachments(cards);
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
 
-    //             session.send(reply);
-    //         }
-    //         else {
-    //             var foundEvents = findEvents(session.dialogData.data.timestamp);
+                session.send(reply);
+            }
+            else {
+                var foundEvents = findEvents(session.dialogData.data.timestamp);
 
-    //             var cards = [];
-    //             foundEvents.forEach(function (event) {
-    //                 cards.push(createCard(session, event));
-    //             });
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
 
-    //             if(cards.length > 0) {
+                if(cards.length > 0) {
 
-    //                 // create reply with Carousel AttachmentLayout
-    //                 var reply = new builder.Message(session)
-    //                     .attachmentLayout(builder.AttachmentLayout.carousel)
-    //                     .attachments(cards);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
 
-    //                 session.send(reply);
-    //             }
-    //             else {
-    //                 session.send('Unfortunately nobody is playing at that time.')
-    //             }
-    //         }
-    //     }
-    //     else {
-    //         session.send('venue search' + session.dialogData.data.venue);
-    //         var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
-    //         session.send(JSON.stringify(venueSearch));
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that time.')
+                }
+            }
+        }
+        else {
+            session.send('venue search' + session.dialogData.data.venue);
+            var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
+            session.send(JSON.stringify(venueSearch));
 
-    //         if(venueSearch.length === 1) {
-    //             session.send('found 3fm stage' + venueSearch[0]);
+            if(venueSearch.length === 1) {
+                session.send('found 3fm stage' + venueSearch[0]);
 
-    //             var foundEvents = functions.searchEventByVenue(venueSearch[0]);
+                var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
-    //             var cards = [];
-    //             foundEvents.forEach(function (event) {
-    //                 cards.push(createCard(session, event));
-    //             });
+                var cards = [];
+                foundEvents.forEach(function (event) {
+                    cards.push(createCard(session, event));
+                });
 
-    //             if(cards.length > 0) {
+                if(cards.length > 0) {
 
-    //                 // create reply with Carousel AttachmentLayout
-    //                 var reply = new builder.Message(session)
-    //                     .attachmentLayout(builder.AttachmentLayout.carousel)
-    //                     .attachments(cards);
+                    // create reply with Carousel AttachmentLayout
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
 
-    //                 session.send(reply);
-    //             }
-    //             else {
-    //                 session.send('Unfortunately nobody is playing at that venue.')
-    //             }
+                    session.send(reply);
+                }
+                else {
+                    session.send('Unfortunately nobody is playing at that venue.')
+                }
 
-    //         }
-    //         else if(venueSearch.length > 1) {
-    //             session.send('Which venue do you mean?');
-    //             venueSearch.forEach(function(venue) {
-    //                 session.send('- ' + venue)
-    //             });
+            }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
 
 
-    //             builder.Prompts.choice(session, "What is the right one?", venueSearch);
-    //         }
-    //         else {
-    //             session.send('I can\'t find it. Sorry.');
-    //         }
-    //     }
-    // }, function (session, results) {
-    //     if (results.response) {
-    //         session.send('jahoor');
-    //         session.send(results.response.entity);
-    //         var region = salesData[results.response.entity];
-    //         session.send("We sold %(units)d units for a total of %(total)s.", region);
-    //     } else {
-    //         session.send("ok");
-    //     }
-    // }])
+                builder.Prompts.choice(session, "What is the right one?", venueSearch);
+            }
+            else {
+                session.send('I can\'t find it. Sorry.');
+            }
+        }
+    }, function (session, results) {
+        if (results.response) {
+            session.send('jahoor');
+            session.send(results.response.entity);
+            var region = salesData[results.response.entity];
+            session.send("We sold %(units)d units for a total of %(total)s.", region);
+        } else {
+            session.send("ok");
+        }
+    }])
     .matches('getLocation', [function (session) {
             var options = {
                 prompt: "I will try to find some great music close to you! Where are you now?",
