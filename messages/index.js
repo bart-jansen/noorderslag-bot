@@ -550,7 +550,7 @@ function createWeatherCards(session, weatherData) {
       .title("Current weather in Groningen")
       .subtitle(weatherData.currently.summary + " | " + Math.round(weatherData.currently.temperature, 1) + "˚C")
       .text("The temperature in Groningen is " + Math.round(weatherData.currently.temperature, 1) + "˚C (feels like: " + Math.round(weatherData.currently.apparentTemperature, 1) + "˚C). The forecast is: " + weatherData.hourly.summary.toLowerCase())
-      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.svg')])
+      .images([builder.CardImage.create(session, darkSkyIconsPrefix + weatherData.currently.icon + '.jpg')])
       .buttons([builder.CardAction.openUrl(session, 'http://www.buienradar.nl/weer/groningen/nl/2755251', 'View details')])
     );
     for (var i = 0; i < Math.min(weatherData.hourly.data.length, 10); i++) {
@@ -560,7 +560,7 @@ function createWeatherCards(session, weatherData) {
           .title("+" + (i+1) + " hours")
           .subtitle(hourlyData.summary + " | " + Math.round(hourlyData.temperature, 1) + "˚C")
           .text("In " + (i+1) + " hours, the temperature will be: " + Math.round(hourlyData.temperature, 1) + "˚C (feels like: " + Math.round(hourlyData.apparentTemperature, 1) + "˚C)." )
-          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.svg')])
+          .images([builder.CardImage.create(session, darkSkyIconsPrefix + hourlyData.icon + '.jpg')])
 
         );
       }
