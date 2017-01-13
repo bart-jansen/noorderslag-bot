@@ -204,6 +204,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                 session.send(JSON.stringify(functions.searchEventByVenue(venueSearch[0])));
             }
+            else if(venueSearch.length > 1) {
+                session.send('Which venue do you mean?');
+                venueSearch.forEach(function(venue) {
+                    session.send('- ' + venue)
+                });
+            }
+            else {
+                session.send('cant find venue...');
+            }
 
         }
     }])
