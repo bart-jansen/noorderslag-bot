@@ -420,9 +420,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                         try {
                             for (var i = 0; i < json.results.length; i++) {
                                 var location = json.results[i]
-                                if (cards.length >= 5) {
-                                    throw BreakException;
-                                }
+                                // if (cards.length >= 5) {
+                                //     throw BreakException;
+                                // }
                                 if (location.photos != undefined && location.photos.length > 0) {
                                     var response = syncRequest(
                                         'GET',
