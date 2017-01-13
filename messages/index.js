@@ -158,6 +158,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // // ... save task
+            session.send(results.response);
+
             var eventData = getArtist(results.response);
 
             if(eventData.length > 0) {
