@@ -7,7 +7,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 // "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
-var locationDialog = require('botbuilder-location');
+var locationDialog = require('ivo-botbuilder-location');
 var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
@@ -462,12 +462,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                         var msg = new builder.Message(session);
                         var cards = [];
                         videos.forEach(function(videoData) {
-                            var card = createVideoCard(session, videoData); 
+                            var card = createVideoCard(session, videoData);
                             cards.push(card);
                         });
                         callback(null, cards);
                     });
-                }], 
+                }],
                 function(error, results) {
                     if (error) {
                         session.send('Sorry, there was an error.');
@@ -595,7 +595,7 @@ if (useEmulator) {
     module.exports = { default: connector.listen() }
 }
 
-function capitalize(str) {  
+function capitalize(str) {
   if (str.length) {
     return str[0].toUpperCase() + str.substr(1).toLowerCase();
   } else {
