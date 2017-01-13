@@ -12,7 +12,6 @@ var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
-var parseXML = require('xml-parser');
 var async = require("async");
 
 var request = require('request');
@@ -28,10 +27,9 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 });
 
 
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag! Try me, I dare you.<br/>" +
-    '<br/><br/>Some examples are:<br/>'+
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic Noorderslag! Try me, I dare you.<br/>" +
+    '<br/>Some examples are:<br/>'+
     '- When is Blaudzun playing?<br/>' +
-    '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
     '- What hiphop band is playing tonight at 21:00?<br/>' +
     "Questions which I can't answer, will be rooted to my real-life friends.";
@@ -45,26 +43,6 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
 
-var MicrosoftCognitiveServicesAPIKey = process.env.MicrosoftCognitiveServicesAPIKey;
-var translationToken = null;
-function getAndSaveTranslationAPIToken(callback){
-    request.post({
-        url: 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken',
-        qs: {
-            "Subscription-Key": MicrosoftCognitiveServicesAPIKey
-        }
-    },
-    function (error, response, body) {
-        if (error) {
-            return console.log(error);
-            if (callback) return callback(error);
-        }
-        translationToken = body;
-        console.log('Saved translationToken');
-        if (callback) return callback(null);
-    })
-}
-getAndSaveTranslationAPIToken();
 
 //load json
 var fs = require("fs");
@@ -80,18 +58,65 @@ var getByGenre = require('./intents/get-by-genre');
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
 
+var venues = JSON.parse(fs.readFileSync(__dirname + '/data/venues.json'));
+var venuesSimple = []
+venues.forEach(function(venue) {
+    venuesSimple.push(venue.name);
+});
+//var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
 var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
 var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
-var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
 
 events.forEach(function(event) {
     artists.push(event.description);
 });
 
 var m = new Matcher({values: artists,threshold: 3});
+
+// add lineup from artist with genres, thats not in the events
+var esnsLineUp = {};
+
+var lineUpContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var esLineUp = JSON.parse(lineUpContents);
+
+var gdActs={};
+var gdCountries={};
+var gdDumNaam='';
+Object.keys(esLineUp).forEach(function (key) {
+    switch (key) {
+        case 'acts':
+
+            for(var i=0;i<esLineUp['acts'].length;i++){
+                gdDumNaam=esLineUp['acts'][i]['title'];
+                gdActs[gdDumNaam]={};
+
+                gdActs[gdDumNaam]['naam']=esLineUp['acts'][i]['title'];
+                if(esLineUp['acts'][i]['countries'].length>0){
+                    gdActs[gdDumNaam]['country']=esLineUp['acts'][i]['countries'][0];
+                }else{
+                    gdActs[gdDumNaam]['country']='';
+                }
+
+                if(esLineUp['acts'][i]['tagLabels']){
+                    gdActs[gdDumNaam]['genre']=esLineUp['acts'][i]['tagLabels'].join();
+                }else{
+                    gdActs[gdDumNaam]['genre']='';
+                }
+            }
+
+            break;
+        case 'countries':
+            gdCountries=esLineUp['countries'];
+            break;
+        case 'default':
+            break;
+    }
+
+
+});
 
 /*
 foodCategory global
@@ -219,6 +244,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
           timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
 
+        session.send(JSON.stringify(data));
+
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
@@ -299,13 +326,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             }
             else if(venueSearch.length > 1) {
-                session.send('Which venue do you mean?');
-                venueSearch.forEach(function(venue) {
-                    session.send('- ' + venue)
-                });
-
-
-                builder.Prompts.choice(session, "What is the right one?", venueSearch);
+                builder.Prompts.choice(session, "Which venue do you mean?", venueSearch);
             }
             else {
                 session.send('I can\'t find it. Sorry.');
@@ -313,7 +334,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }, function (session, results) {
         if (results.response) {
-
+            session.send(results.response);
+            console.log('test');
             var foundEvents = functions.searchEventByVenue(results.response.entity);
 
             var cards = [];
@@ -364,17 +386,20 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     ])
     .matches('getFood', [function(session, args, next) {
-        foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){
+        category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
+        if(!category){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
-            next({response: foodCategory.entity })
+            next({response: category.entity })
 
         }
     },
       function(session, results){
+          foodCategory = results.response;
+
+          console.log(foodCategory);
           var options = {
-              prompt: capitalize(results.response) + "! I know a great place! Where are you now?",
+              prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
               requiredFields: locationDialog.LocationRequiredFields.streetAddress |
@@ -391,9 +416,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-            var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+dumFoodCategory.entity,
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+foodCategory,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
@@ -536,6 +560,56 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+    .matches('goToVenue', [function(session,args,next){
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+        if(!venue){
+            builder.Prompts.text(session, "What venue do you want to go to?");
+        } else {
+            next({response: venue.entity})
+        }
+    },
+    function(session, results, next) {
+        // Get results from JSON
+        var m = new Matcher({values: venuesSimple,threshold: 3});
+        var v = m.list(results.response);
+        var optionList = []
+        if(v.length > 1) {
+            session.send('Which venue do you mean?');
+            v.forEach(function (venue) {
+                optionList.push(venue.value);
+                session.send('- ' + venue.value)
+            });
+
+
+            builder.Prompts.choice(session, "Which venue?", optionList);
+        }
+        else if(v.length == 1) {
+            next({response: {entity: v[0].value}})
+        }
+        else {
+            session.send('I could not find that venue')
+        }
+
+    },
+    function(session, results, next){
+        console.log(results);
+        session.send('Here are directions to ' + results.response.entity);
+        var venueContent = fs.readFileSync(__dirname + '/data/venues.json');
+        var venues = JSON.parse(venueContent);
+        var json_result = {};
+        venues.forEach(function(venue){
+            if(venue.name == results.response.entity){
+                json_result = venue;
+            }
+        });
+        var card = new builder.HeroCard(session)
+          .title(results.response.entity)
+          .subtitle('Eurosonic Noorderslag 2017 Venue')
+          .buttons([builder.CardAction.openUrl(session, 'https://maps.google.com?daddr=' + json_result.lat + ',' + json_result.lng, 'Go there now')]);
+
+        var msg = new builder.Message(session).addAttachment(card);
+        session.send(msg);
+    }])
 
   .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
 	.matches('getWillRain', [
@@ -636,76 +710,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
 
 bot.dialog('/', intents);
-
-function detectLanguage(text, callback) {
-    request.get({
-        url: 'https://api.microsofttranslator.com/v2/http.svc/Detect',
-        qs: {text: text},
-        auth: {
-            'bearer': translationToken
-        }
-    }, function (error, response, body) {
-        if (error) {
-            console.log('Error while detecting the language');
-            getAndSaveTranslationAPIToken(function () {detectLanguage(text, callback)});
-            return;
-        }
-        var lang = parseXML(body).root.content;
-        return callback(null, lang);
-    });
-}
-
-function translateToEnglish(text, fromLanguage, callback) {
-    request.get({
-        url: 'https://api.microsofttranslator.com/v2/http.svc/Translate',
-        qs: {text: text, from: fromLanguage, to: 'en'},
-        auth: {
-            'bearer': translationToken
-        }
-    }, function(error, response, body){
-        console.log('callback translateToEnglish');
-        if (error) {
-            console.log('Error while translating the input');
-            getAndSaveTranslationAPIToken(function () {translateToEnglish(text, from, callback)});
-            return;
-        }
-        var translatedText = parseXML(body).root.content;
-        console.log('Translated text:' + translatedText);
-        return callback(null, translatedText);
-    });
-}
-
-bot.use({
-    receive: function (event, next) {
-        if (! event.text) {
-            return next();
-        }
-        else if (! event.textLocale) {
-            console.log('detecting locale');
-            detectLanguage(event.text, function(error, language) {
-                console.log('Locale detected:' + language);
-                event.textLocale = language;
-                event.originalText = event.text
-                if (language == 'en') return next();
-                translateToEnglish(event.text, language, function (error, translatedText) {
-                    event.originalText = event.text;
-                    event.text = translatedText;
-                    return next();
-                });
-            });
-        }
-        else if (event.textLocale != 'en') {
-            translateToEnglish(event.text, event.textLocale, function (error, translatedText) {
-                event.text = translatedText;
-                return next();
-            });
-        }
-        else {
-            return next();
-        }
-    }
-})
-
 
 function createCard(session, eventData) {
 
