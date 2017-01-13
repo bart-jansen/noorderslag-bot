@@ -10,6 +10,8 @@ var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('botbuilder-location');
 var fetch = require('node-fetch');
 
+var request = require('request');
+
 var useEmulator = (process.env.NODE_ENV == 'development');
 
 var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
@@ -207,7 +209,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    .matches('food', [function(session, args) {
+    .matches('getFood', [function(session, args) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
         var options = {
             prompt: "I will try to find a place where you can eat " + foodCategory.entity + "! Where are you now?",
@@ -227,40 +229,52 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var googleMapsApiKey = process.env.GoogleMapsApiKey;
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
-            fetch('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza').then(function(res) {
-                return res.json();
-            }).then(function(json) {
+
+            request.get({
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword=pizza',
+            },
+            function (error, response, body) {
+                if (error || response.statusCode != 200) {
+                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                }
+                json = JSON.parse(body);
                 if(json.results || json.results.length > 0) {
                     var cards = [];
-                    
                     json.results.forEach(function (location) {
-                        var googleMapsApiKey = process.env.GoogleMapsApiKey;
+                        if(location.photos != undefined && location.photos.length > 0) {
+                            console.log(location.photos)
+                            console.log('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256');
+                            request.get({
+                                url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
+                            },
+                            function (error, response, body) {
+                                //console.log(error)
+                                //console.log(response)
+                                console.log(response.Request)
+                                if (error || response.statusCode != 200) {
+                                    session.send('Sorry, I could not find the any locations to eat .', results.response);
+                                }
+                                var card = new builder.HeroCard(session)
+                                    .title(location.name)
+                                    .subtitle(location.vicinity)
+                                    .images([builder.CardImage.create(session, imageUrl)])
+                                    .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng, 'Get directions')]);
 
-                        fetch('https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256').then(function(res) {
-                            return res.url;  
-                        }).then(function(imageUrl) {
-                            var card = new builder.HeroCard(session)
-                                .title(location.name)
-                                .subtitle(location.vicinity)
-                                .images([builder.CardImage.create(session, imageUrl)])
-                                .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr='+location.geometry.location.lat+','+location.geometry.location.lng, 'Get directions')]);
-
-                            cards.push(card);
-                        }).then(function() {
-                            // create reply with Carousel AttachmentLayout
-                            var reply = new builder.Message(session)
-                                .attachmentLayout(builder.AttachmentLayout.carousel)
-                                .attachments(cards);
-
-                            session.send(reply);
-                        });            
+                                cards.push(card);
+                            });
+                        }
                     });
+                    var reply = new builder.Message(session)
+                        .attachmentLayout(builder.AttachmentLayout.carousel)
+                        .attachments(cards);
+
+                    session.send(reply);
                 } else {
-                    session.send('Sorry, I could not find the any locations to eat .', result.response);
+                    session.send('Sorry, I could not find the any locations to eat .', results.response);
                 }
-            });           
+            });
         } else {
-            session.send('Sorry, I could not find the any locations to eat .', result.response);
+            session.send('Sorry, I could not find the any locations to eat .', results.response);
         }
     }])
     .onDefault((session) => {

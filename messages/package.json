@@ -8,7 +8,7 @@
     "botbuilder-azure": "0.0.1",
     "botbuilder-location": "^1.0.2",
     "did-you-mean": "0.0.1",
-    "node-fetch": "^1.6.3"
+    "request": "^2.79.0"
   },
   "devDependencies": {
     "restify": "^4.1.1"
