@@ -151,9 +151,10 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
     .matches('getTimetable', [function (session, args, next)  {
         session.send('test');
-        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
-        // var datetime = builder.EntityRecognizer.findEntity(intent.entities, 'datetime');
         var time = builder.EntityRecognizer.resolveTime(args.entities);
+        var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+
+
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
@@ -164,12 +165,18 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         session.send('getting timetable');
 
-        // Prompt for title
-        if (!data.venue && !data.time) {
-            builder.Prompts.text(session, 'What venue are you looking for?');
+        if (!venue && !time) {
+            builder.Prompts.text(session, "What venue are you looking for?");
         } else {
             next({ response: venue.entity });
         }
+
+        // // Prompt for title
+        // if (!data.venue && !data.time) {
+        //     builder.Prompts.text(session, 'What venue are you looking for?');
+        // } else {
+        //     next({ response: venue.entity });
+        // }
     },
     function (session, results) {
         session.send(results.response);
