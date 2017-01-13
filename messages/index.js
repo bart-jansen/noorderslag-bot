@@ -180,11 +180,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     function (session, results) {
         if (results.response) {
             // // ... save task
-            session.send(results.response);
-
             var eventData = getArtist(results.response);
-
-            session.send(JSON.stringify(eventData));
 
             if(eventData.length > 0) {
                 var card = createCard(session, eventData);
