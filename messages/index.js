@@ -184,24 +184,21 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
-        session.send('getting timetable');
 
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send('test');
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
           timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        session.send(JSON.stringify(data));
-
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
-            next({ response: venue.entity });
+
+            next();
         }
     },
     function (session, results) {
