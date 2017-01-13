@@ -27,9 +27,9 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 });
 
 
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
-    'Try me, I dare you. Some examples are:<br/>'+
-    '- When is blaudzun playing?<br/>' +
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag! Try me, I dare you.<br/>" +
+    '<br/><br/>Some examples are:<br/>'+
+    '- When is Blaudzun playing?<br/>' +
     '- Who is playing near me?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
     "Questions which I can't answer, will be rooted to my real-life friends.";
@@ -50,9 +50,15 @@ var request = require('request');
 
 var functions = require('./functions');
 
+// intents
+var getByGenre = require('./intents/get-by-genre');
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
+
+var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
+var lineup = JSON.parse(lineupContents);
 
 // add seperate artist list
 var artists = [];
@@ -160,25 +166,30 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             // // ... save task
             var eventData = getArtist(results.response);
 
-            if(eventData.length > 0) {
+            if(eventData) {
                 var card = createCard(session, eventData);
 
                 var msg = new builder.Message(session).addAttachment(card);
                 session.send(msg);
             }
             else {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('cant find artist');
+                // session.send('Oops, I can\'t find the artist \'%s\'.', result.response);
             }
 
             // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
-            session.send("Ok");
+            session.send("Cannot get band");
         }
     }])
 
     .matches('getTimetable', [function (session, args, next)  {
+
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
+
+        session.send(moment(time).isValid() ? 'test' : 'new test');
+
 
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
@@ -189,16 +200,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
-            next({ response: venue.entity });
+
+            next();
         }
     },
     function (session, results) {
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
-                session.send('full day');
+                session.send('Here is the whole day. That\'s a lot!');
 
                 var endTime = (24 * 60 * 60 * 1000) + session.dialogData.data.timestamp;
 
@@ -234,17 +244,16 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that time..')
+                    session.send('Unfortunately nobody is playing at that time.')
                 }
             }
         }
         else {
-            session.send('venue search' + session.dialogData.data.venue);
             var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
-                session.send('found 3fm stage' + venueSearch[0]);
+                session.send('found ' + venueSearch[0]);
 
                 var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
@@ -263,7 +272,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     session.send(reply);
                 }
                 else {
-                    session.send('Unfortunately nobody is playing at that venue..')
+                    session.send('Unfortunately nobody is playing at that venue.')
                 }
 
             }
@@ -274,25 +283,42 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 });
 
 
-                builder.Prompts.choice(session, "Which venue?", venueSearch);
+                builder.Prompts.choice(session, "What is the right one?", venueSearch);
             }
             else {
-                session.send('cant find venue...');
+                session.send('I can\'t find it. Sorry.');
             }
         }
     }, function (session, results) {
         if (results.response) {
-            session.send('jahoor');
-            session.send(results.response.entity);
-            var region = salesData[results.response.entity];
-            session.send("We sold %(units)d units for a total of %(total)s.", region);
+
+            var foundEvents = functions.searchEventByVenue(results.response.entity);
+
+            var cards = [];
+            foundEvents.forEach(function (event) {
+                cards.push(createCard(session, event));
+            });
+
+            if(cards.length > 0) {
+
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
+
+                session.send(reply);
+            }
+            else {
+                session.send('Unfortunately nobody is playing at that venue.')
+            }
+
         } else {
             session.send("ok");
         }
     }])
     .matches('getLocation', [function (session) {
             var options = {
-                prompt: "I will try to find some parties close to you! Where are you currently located?",
+                prompt: "I will try to find some great music close to you! Where are you now?",
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
@@ -311,13 +337,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 var lat = place.geo.latitude;
                 var lng = place.geo.longitude;
 
-                session.send("Party going on 300m from you! at  " + JSON.stringify(place));
+                session.send("Party going on 300m from you! at " + JSON.stringify(place));
             }
         }
     ])
     .matches('getFood', [function(session, args, next) {
         foodCategory = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-        if(!foodCategory){NODE_ENV=development
+        if(!foodCategory){
             builder.Prompts.text(session, "What do you wanna eat?");
         } else {
             next({response: foodCategory.entity })
@@ -345,7 +371,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var lat = results.response['geo']['latitude'];
             var dumFoodCategory=foodCategory;
             request.get({
-                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&keyword='+dumFoodCategory.entity,
+                url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword='+dumFoodCategory.entity,
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
@@ -427,7 +453,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         function (session, args, next)  {
             var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
             if (!band) {
-                builder.Prompts.text(session, "What artist/band are you looking for?");
+                builder.Prompts.text(session, "What artist or band are you looking for?");
             } else {
                 next({ response: band.entity });
             }
@@ -439,7 +465,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             var eventData = getArtist(results.response);
 
             if (!eventData) {
-                session.send('Sorry, I could not find the artist \'%s\'.', result.response);
+                session.send('Oops, I can\'t find \'%s\'.', result.response);
                 return;
             }
 
@@ -546,6 +572,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         });
     }])
+
+    .matches('getByGenre', getByGenre(lineup))
+
     .onDefault((session) => {
         session.sendTyping();
         request.post({
