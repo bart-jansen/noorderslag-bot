@@ -243,12 +243,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            session.send('venue search' + session.dialogData.data.venue);
             var venueSearch = functions.searchVenue(session.dialogData.data.venue.toString());
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
-                session.send('found 3fm stage' + venueSearch[0]);
+                session.send('found ' + venueSearch[0]);
 
                 var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
@@ -286,10 +285,27 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }, function (session, results) {
         if (results.response) {
-            session.send('jahoor');
-            session.send(results.response.entity);
-            var region = salesData[results.response.entity];
-            session.send("We sold %(units)d units for a total of %(total)s.", region);
+
+            var foundEvents = functions.searchEventByVenue(results.response.entity);
+
+            var cards = [];
+            foundEvents.forEach(function (event) {
+                cards.push(createCard(session, event));
+            });
+
+            if(cards.length > 0) {
+
+                // create reply with Carousel AttachmentLayout
+                var reply = new builder.Message(session)
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(cards);
+
+                session.send(reply);
+            }
+            else {
+                session.send('Unfortunately nobody is playing at that venue.')
+            }
+
         } else {
             session.send("ok");
         }
