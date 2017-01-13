@@ -20,8 +20,9 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var HELP_TEXT = 'Hi there, my name is Peter! I can help you find your favorite ESNS events, ask my anything ;)<br/>' +
-            'Some examples are:<br/>'+
+
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic/Noorderslag!<br/>" +
+            'Try me, I dare you. Some examples are:<br/>'+
             '- When is blaudzun playing?<br/>' +
             '- Who is playing near me?<br/>' +
             '- Who is playing tomorrow at 21:00?';
@@ -153,37 +154,19 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-
-        // if(!session.dialogData) {
-        //     session.dialogData = {};
-        // }
-
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? time.toString() : null,
           timestamp: time ? (time.getTime() - (60 * 60 * 1000)) : null //timezone diff with UTC
         };
 
-        session.send('getting timetable');
-
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
             next({ response: venue.entity });
         }
-
-        // // Prompt for title
-        // if (!data.venue && !data.time) {
-        //     builder.Prompts.text(session, 'What venue are you looking for?');
-        // } else {
-        //     next({ response: venue.entity });
-        // }
     },
     function (session, results) {
-        session.send(results.response);
-
-        session.send(JSON.stringify(session.dialogData.data));
-
         if(session.dialogData && session.dialogData.data.time) {
             if(session.dialogData.data.time.indexOf('00:00:00') !== -1) {
                 //look for full day
@@ -229,7 +212,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
         else {
-            // session.send('venue');
+            session.send('venue');
         }
     }])
     .matches('getLocation', [function (session) {
