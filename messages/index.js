@@ -13,6 +13,7 @@ var Forecast = require('forecast');
 var moment = require("moment");
 var youtube = require("youtube-api");
 var async = require("async");
+var _ = require('lodash');
 
 var request = require('request');
 var syncRequest = require('sync-request');
@@ -26,8 +27,7 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-
-var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic Noorderslag! Try me, I dare you.<br/>" +
+var HELP_TEXT = "Hi! I'm Sonic, They also call me 'know it all', because I know everything about Eurosonic Noorderslag!<br/>" +
     '<br/>Some examples are:<br/>'+
     '- When is Blaudzun playing?<br/>' +
     '- Who is playing tomorrow at 21:00?<br/>' +
@@ -236,20 +236,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         var time = builder.EntityRecognizer.resolveTime(args.entities);
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
 
-        session.send(moment(time).isValid() ? 'valid dateje' : 'not valid date');
-
         var data = session.dialogData.data = {
           venue: venue ? venue.entity : null,
           time: time ? (moment(time).isValid() ? time.toString() : (new Date()).toString()) : null,
           timestamp: time ? (moment(time).isValid() ? (time.getTime() - (60 * 60 * 1000)) : new Date().getTime()) : null //timezone diff with UTC
         };
 
-        session.send(JSON.stringify(data));
-
         if (!venue && !time) {
             builder.Prompts.text(session, "What venue are you looking for?");
         } else {
-
             next();
         }
     },
@@ -302,8 +297,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send(JSON.stringify(venueSearch));
 
             if(venueSearch.length === 1) {
-                session.send('found ' + venueSearch[0]);
-
                 var foundEvents = functions.searchEventByVenue(venueSearch[0]);
 
                 var cards = [];
@@ -334,8 +327,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         }
     }, function (session, results) {
         if (results.response) {
-            session.send(results.response);
-            console.log('test');
             var foundEvents = functions.searchEventByVenue(results.response.entity);
 
             var cards = [];
@@ -366,7 +357,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 useNativeControl: true,
                 reverseGeocode: true,
                 requiredFields:
-                    locationDialog.LocationRequiredFields.streetAddress |
                     locationDialog.LocationRequiredFields.locality |
                     locationDialog.LocationRequiredFields.postalCode |
                     locationDialog.LocationRequiredFields.country
@@ -402,7 +392,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
               prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
               useNativeControl: true,
               reverseGeocode: true,
-              requiredFields: locationDialog.LocationRequiredFields.streetAddress |
+              requiredFields:
               locationDialog.LocationRequiredFields.locality |
               locationDialog.LocationRequiredFields.postalCode |
               locationDialog.LocationRequiredFields.country
@@ -413,7 +403,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
         if(results.response) {
             session.sendTyping();
-            var googleMapsApiKey = process.env.GoogleMapsApiKey;
+            var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
             var lng = results.response['geo']['longitude'];
             var lat = results.response['geo']['latitude'];
             request.get({
@@ -421,7 +411,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             },
             function (error, response, body) {
                 if (error || response.statusCode != 200) {
-                    session.send('Oops! That place I knew is gone...');
+                    session.send('testOops! That place I knew is gone...');
                 } else {
                     json = JSON.parse(body);
                     if (json.results || json.results.length > 0) {
@@ -430,9 +420,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                         try {
                             for (var i = 0; i < json.results.length; i++) {
                                 var location = json.results[i]
-                                if (cards.length >= 5) {
-                                    throw BreakException;
-                                }
+                                // if (cards.length >= 5) {
+                                //     throw BreakException;
+                                // }
                                 if (location.photos != undefined && location.photos.length > 0) {
                                     var response = syncRequest(
                                         'GET',
@@ -442,19 +432,20 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                                         }
                                     );
                                     if (response.statusCode != 302) {
-                                        console.log('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
+                                        session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')
                                     } else {
                                         var card = new builder.HeroCard(session)
                                             .title(location.name)
                                             .subtitle(location.vicinity)
                                             .images([builder.CardImage.create(session, response.headers.location)])
                                             .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-                                        console.log('push card');
+                                        session.send('push card');
                                         cards.push(card);
                                     }
                                 }
                             }
                         } catch (e) {
+                            session.send('getting catch' + e);
                         } //just for ending the loop early
 
                         if (cards.length != 0) {
@@ -464,7 +455,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
                             session.send(reply);
                         } else {
-                            session.send('Oops! That place I knew is gone...');
+                            session.send('Oop2s! That place I knew is gone...');
                         }
                     } else {
                         session.send('Oops! That place I knew is gone...');
