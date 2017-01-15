@@ -14,7 +14,8 @@ var moment = require("moment");
 var youtube = require("youtube-api");
 var async = require("async");
 var _ = require('lodash');
-
+var fs = require("fs");
+var Matcher = require('did-you-mean');
 var request = require('request');
 var syncRequest = require('sync-request');
 
@@ -43,17 +44,10 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
 
-
-//load json
-var fs = require("fs");
-var Matcher = require('did-you-mean');
-var request = require('request');
-
 var functions = require('./functions');
 
 // intents
 var getByGenre = require('./intents/get-by-genre');
-
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -63,7 +57,7 @@ var venuesSimple = []
 venues.forEach(function(venue) {
     venuesSimple.push(venue.name);
 });
-//var venues = ['3FM stage - Ebbingekwartier','De Oosterpoort Benedenzaal 1 - Kelder','De Oosterpoort Foyer Grote Zaal','De Oosterpoort Grote Zaal','De Oosterpoort Kleine Zaal','De Oosterpoort Restaurant - Marathonzaal','Grand Theatre main','Grand Theatre up','Huize Maas front','Huize Maas main','Mutua Fides','Vera'];
+
 var lineupContents = fs.readFileSync(__dirname + '/data/lineup.json');
 var lineup = JSON.parse(lineupContents);
 
@@ -114,8 +108,6 @@ Object.keys(esLineUp).forEach(function (key) {
         case 'default':
             break;
     }
-
-
 });
 
 /*
@@ -699,13 +691,13 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         });
     });
-    // .onBegin(function (session, args, next) {
-    //     // session.dialogData.name = args.name;
-    //     session.send(HELP_TEXT);
-    //     next();
-    // });
+    .onBegin(function (session, args, next) {
+        // session.dialogData.name = args.name;
+        session.send(HELP_TEXT);
+        next();
+    });
 
-bot.library(locationDialog.createLibrary('AtU1C7ph71-Saztv0uibjAMRGL7u5Kxy_yQJQa0vmmOUWZn1Xz4dhgZPwmfSdg23'));
+bot.library(locationDialog.createLibrary(process.env.BingMapsApiKey));
 
 bot.dialog('/', intents);
 
