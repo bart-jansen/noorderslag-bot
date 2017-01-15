@@ -690,7 +690,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send(body.answer)
             }
         });
-    });
+    })
     .onBegin(function (session, args, next) {
         // session.dialogData.name = args.name;
         session.send(HELP_TEXT);
