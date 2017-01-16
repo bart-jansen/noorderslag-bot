@@ -1,8 +1,6 @@
 var locationDialog = require('ivo-botbuilder-location');
 var builder = require("botbuilder");
 var request = require('request');
-var syncRequest = require('sync-request');
-
 var functions = require('../functions');
 
 module.exports = function () {
@@ -57,25 +55,13 @@ module.exports = function () {
                             var location = json.results[i];
 
                             if (location.photos && location.photos.length > 0) {
-                                var response = syncRequest('GET',
-                                    'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256',
-                                    {
-                                        "followRedirects": false
-                                    }
-                                );
+                                var card = new builder.HeroCard(session)
+                                    .title(location.name)
+                                    .subtitle(location.vicinity)
+                                    .images([builder.CardImage.create(session, 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256')])
+                                    .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
 
-                                if (response.statusCode !== 302) {
-                                    session.send('error loading: https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256');
-                                }
-                                else {
-                                    var card = new builder.HeroCard(session)
-                                        .title(location.name)
-                                        .subtitle(location.vicinity)
-                                        .images([builder.CardImage.create(session, response.headers.location)])
-                                        .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-
-                                    cards.push(card);
-                                }
+                                cards.push(card);
                             }
                         }
 
