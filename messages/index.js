@@ -4,24 +4,35 @@ natural language support to a bot.
 For a complete walkthrough of creating this type of bot see the article at
 http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 -----------------------------------------------------------------------------*/
-// "use strict";
+"use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var locationDialog = require('ivo-botbuilder-location');
 var fetch = require('node-fetch');
 var Forecast = require('forecast');
 var moment = require("moment");
-var youtube = require("youtube-api");
 var async = require("async");
 var _ = require('lodash');
 var fs = require("fs");
 var Matcher = require('did-you-mean');
 var request = require('request');
-var syncRequest = require('sync-request');
+
+// helper fns
+var functions = require('./functions');
+
+// intents
+var getByGenre = require('./intents/get-by-genre');
+var getFood = require('./intents/get-food');
+
+
+//load vars if dev environment
+if(!process.env.LuisAppId) {
+    require('dotenv').config();
+}
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
-var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
+var connector = useEmulator ? new builder.ChatConnector({appId: process.env['MicrosoftAppId'],appPassword: process.env['MicrosoftAppPassword']}) : new botbuilder_azure.BotServiceConnector({
     appId: process.env['MicrosoftAppId'],
     appPassword: process.env['MicrosoftAppPassword'],
     stateEndpoint: process.env['BotStateEndpoint'],
@@ -44,10 +55,6 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'api.projectoxford.ai';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
 
-var functions = require('./functions');
-
-// intents
-var getByGenre = require('./intents/get-by-genre');
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -110,13 +117,7 @@ Object.keys(esLineUp).forEach(function (key) {
     }
 });
 
-/*
-foodCategory global
-not nice, no priority at this moment to do it otherwise
-*/
-
-var foodCategory={};
-var category;
+var showHelpMsg = false;
 var darkSkyKey = process.env.DarkSkyKey;
 var darkSkyLatLng = process.env.DarkSkyLatLng;
 var darkSkyIconsPrefix = process.env.DarkSkyIconsPrefix;
@@ -129,11 +130,10 @@ var forecast = new Forecast({
   cache: true,      // Cache API requests
   ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/
     minutes: 15,
-    seconds: 00
+    seconds: 0
   }
 });
 
-var youtubeApiKey = process.env.YoutubeApiKey;
 
 function getArtist(artistName) {
     var returnVal;
@@ -163,39 +163,17 @@ function findEvents(searchTime, endTime) {
     return foundEvents;
 }
 
-function getSong(band, callback) {
-    request.get({
-        url: 'https://api.spotify.com/v1/search',
-        qs: {
-            q: band,
-            type: 'artist,track'
-        }
-    },
-    function (error, response, body) {
-        body = JSON.parse(body);
-        callback(error, body);
-    });
-}
-
-function getVideos(artistName, callback) {
-    youtube.search.list({
-        part: 'snippet',
-        type: 'video',
-        order: 'viewCount',
-        maxResults: 3,
-        q: artistName,
-        key: youtubeApiKey
-    }, function(error, request, response) {
-        callback(error, response.body.items);
-    });
-}
 
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('whatCanIDo', function(session, args) {
-        session.send(HELP_TEXT);
+        if(!showHelpMsg)
+            session.send(HELP_TEXT);
+        else
+            showHelpMsg = false;
     })
+
     .matches('getData', [function (session, args, next)  {
         var band = builder.EntityRecognizer.findEntity(args.entities, 'band');
         if (!band) {
@@ -211,18 +189,14 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             if(eventData) {
                 var card = createCard(session, eventData);
-
                 var msg = new builder.Message(session).addAttachment(card);
                 session.send(msg);
             }
             else {
-                session.send('cant find artist');
-                // session.send('Oops, I can\'t find the artist \'%s\'.', result.response);
+                session.send('Oops, I can\'t find the artist \'%s\'.', results.response);
             }
-
-            // session.send("Ok... Found the '%s' band.", eventData.description);
         } else {
-            session.send("Cannot get band");
+            session.send('Cannot get band');
         }
     }])
 
@@ -274,7 +248,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 });
 
                 if(cards.length > 0) {
-
                     // create reply with Carousel AttachmentLayout
                     var reply = new builder.Message(session)
                         .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -300,7 +273,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 });
 
                 if(cards.length > 0) {
-
                     // create reply with Carousel AttachmentLayout
                     var reply = new builder.Message(session)
                         .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -330,7 +302,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             });
 
             if(cards.length > 0) {
-
                 // create reply with Carousel AttachmentLayout
                 var reply = new builder.Message(session)
                     .attachmentLayout(builder.AttachmentLayout.carousel)
@@ -346,6 +317,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             session.send("ok");
         }
     }])
+
     .matches('getLocation', [function (session) {
             var options = {
                 prompt: "I will try to find some great music close to you! Where are you now?",
@@ -370,101 +342,9 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             }
         }
     ])
-    // .matches('getFood', [function(session, args, next) {
-    //     category = builder.EntityRecognizer.findEntity(args.entities, 'foodCategory');
-    //     foodCategory = category
-    //     if(!category){
-    //         builder.Prompts.text(session, "What do you wanna eat?");
-    //     } else {
-    //         next({response: category.entity })
 
-    //     }
-    // },
-    // function(session, results){
-    //     if(!foodCategory)
-    //         foodCategory = results.response;
+    .matches('getFood', getFood())
 
-    //       console.log(foodCategory);
-    //       var options = {
-    //           prompt: capitalize(foodCategory) + "! I know a great place! Where are you now?",
-    //           useNativeControl: true,
-    //           reverseGeocode: true,
-    //           requiredFields:
-    //           locationDialog.LocationRequiredFields.locality |
-    //           locationDialog.LocationRequiredFields.postalCode |
-    //           locationDialog.LocationRequiredFields.country
-    //       };
-    //       locationDialog.getLocation(session, options);
-    //   },
-    // function(session, results) {
-
-    //     if(results.response) {
-    //         session.sendTyping();
-    //         var googleMapsApiKey = 'AIzaSyAah14XfNt_5GEVLPkw0HyzjM8L4AduyrM';
-    //         var lng = results.response['geo']['longitude'];
-    //         var lat = results.response['geo']['latitude'];
-
-    //         // session.send('results' + JSON.stringify(results.response));
-
-    //         // session.send('category' + JSON.stringify(category));
-    //         // session.send('https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza');
-
-    //         request.get({
-    //             url: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=' + googleMapsApiKey + '&location='+lat+','+lng+'&rankby=distance&opennow&types=bar|cafe|food|restaurant&keyword=pizza'
-    //         },
-    //         function (error, response, body) {
-    //             if (error || response.statusCode != 200) {
-    //                 session.send('Oops! That place I knew is gone...');
-    //             } else {
-    //                 json = JSON.parse(body);
-    //                 if (json.results || json.results.length > 0) {
-    //                     var cards = [];
-
-    //                     // session.send(JSON.stringify(json.results));
-
-
-    //                     for (var i = 0; i < Math.min(json.results.length, 5); i++) {
-    //                         var location = json.results[i]
-    //                         if (location.photos != undefined && location.photos.length > 0) {
-    //                             request.get({
-    //                                 url: 'https://maps.googleapis.com/maps/api/place/photo?key=' + googleMapsApiKey + '&photoreference=' + location.photos[0].photo_reference + '&maxheight=256'
-    //                             }, function (error, response, body) {
-    //                                 session.send(JSON.stringify(response));
-    //                                 session.send(JSON.stringify(body));
-    //                             });
-    //                             //     // session.send('trying to create card');
-
-    //                             //     var card = new builder.HeroCard(session)
-    //                             //         .title(location.name)
-    //                             //         .subtitle(location.vicinity)
-    //                             //         .images([builder.CardImage.create(session, response.headers.location)])
-    //                             //         .buttons([builder.CardAction.openUrl(session, 'http://maps.google.com/?daddr=' + location.geometry.location.lat + ',' + location.geometry.location.lng + '&saddr=' + lat + ',' + lng, 'Get directions')]);
-    //                             //     session.send('push card');
-    //                             //     cards.push(card);
-    //                             // }
-    //                         }
-    //                     }
-
-    //                     // session.send('cards length ' + cards.length);
-
-    //                     if (cards.length != 0) {
-    //                         var reply = new builder.Message(session)
-    //                             .attachmentLayout(builder.AttachmentLayout.carousel)
-    //                             .attachments(cards);
-
-    //                         session.send(reply);
-    //                     } else {
-    //                         session.send('Oops! That place I knew is gone...');
-    //                     }
-    //                 } else {
-    //                     session.send('Oops! That place I knew is gone...');
-    //                 }
-    //             }
-    //         });
-    //     } else {
-    //         session.send('You did not give me a real location.');
-    //     }
-    // }])
     .matches('getWeatherData', [function (session, args, next)  {
         session.sendTyping();
         // var time = builder.EntityRecognizer.resolveTime(args.entities);
@@ -509,7 +389,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
             async.parallel([
                 function(callback) {
-                    getSong(band, function(error, songData) {
+                    functions.getSong(band, function(error, songData) {
                         if (error) {
                             callback(error);
                             return;
@@ -519,7 +399,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                     });
                 },
                 function(callback) {
-                    getVideos(eventData.description, function(error, videos) {
+                    functions.getVideos(eventData.description, function(error, videos) {
                         if(error) {
                             callback(error);
                             return;
@@ -550,6 +430,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             );
         }
     ])
+
     .matches('goToVenue', [function(session,args,next){
         var venue = builder.EntityRecognizer.findEntity(args.entities, 'venue');
         if(!venue){
@@ -557,8 +438,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         } else {
             next({response: venue.entity})
         }
-    },
-    function(session, results, next) {
+    }, function(session, results, next) {
         // Get results from JSON
         var m = new Matcher({values: venuesSimple,threshold: 3});
         var v = m.list(results.response);
@@ -570,7 +450,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('- ' + venue.value)
             });
 
-
             builder.Prompts.choice(session, "Which venue?", optionList);
         }
         else if(v.length == 1) {
@@ -579,9 +458,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         else {
             session.send('I could not find that venue')
         }
-
-    },
-    function(session, results, next){
+    }, function(session, results, next){
         console.log(results);
         session.send('Here are directions to ' + results.response.entity);
         var venueContent = fs.readFileSync(__dirname + '/data/venues.json');
@@ -601,7 +478,8 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         session.send(msg);
     }])
 
-  .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
+    .matches('getByGenre', getByGenre(lineup, findEvents, createCard))
+
 	.matches('getWillRain', [
          function (session, args, next)  {
 
@@ -623,7 +501,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('Sorry, I could not find the artist \'%s\'.', result.response);
                 return;
             }
-
 
             session.sendTyping();
             var latlngTime = darkSkyLatLng.split(",");
@@ -647,17 +524,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 cardText = "Yes it will snow during "+eventData.description;
             }
 
-
-           if( gifUrl ) {
+            if( gifUrl ) {
                 var radarReply = new builder.Message(session)
                 .attachments([{
                     contentType: 'image/gif',
                     contentUrl: gifUrl
                 }]);
                 session.send(radarReply);
-           }
-           session.send(cardText);
-
+            }
+            session.send(cardText);
         });
     }])
     .onDefault((session) => {
@@ -684,7 +559,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 "I wanna help, but I don't know how"];
 
                 session.send(randomMsgs[Math.floor(Math.random() * randomMsgs.length)])
-                // session.send('Sorry, I did not understand \'%s\'.', session.message.text);
             }
             else{
                 session.send(body.answer)
@@ -692,7 +566,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         });
     })
     .onBegin(function (session, args, next) {
-        // session.dialogData.name = args.name;
+        showHelpMsg = true;
         session.send(HELP_TEXT);
         next();
     });
@@ -702,7 +576,6 @@ bot.library(locationDialog.createLibrary(process.env.BingMapsApiKey));
 bot.dialog('/', intents);
 
 function createCard(session, eventData) {
-
     return new builder.HeroCard(session)
         .title(eventData.description)
         .subtitle(eventData.description + ' — ' + eventData.day + ' ' + eventData.start_time + ' - ' + eventData.end_time + ' at ' + eventData.location)
@@ -761,17 +634,9 @@ if (useEmulator) {
     var restify = require('restify');
     var server = restify.createServer();
     server.listen(3978, function() {
-        console.log('test bot endpont at http://localhost:3978/api/messages');
+        console.log('test bot endpoint at http://localhost:3978/api/messages');
     });
     server.post('/api/messages', connector.listen());
 } else {
     module.exports = { default: connector.listen() }
-}
-
-function capitalize(str) {
-  if (str.length) {
-    return str[0].toUpperCase() + str.substr(1).toLowerCase();
-  } else {
-    return '';
-  }
 }

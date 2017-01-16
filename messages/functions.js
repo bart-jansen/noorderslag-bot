@@ -1,4 +1,7 @@
 var fs = require('fs');
+var request = require('request');
+var youtube = require("youtube-api");
+
 
 var eventContents = fs.readFileSync(__dirname + '/data/events.json');
 var events = JSON.parse(eventContents);
@@ -28,7 +31,46 @@ function searchVenue(searchString) {
     return venueList;
 }
 
+function ucFirst(str) {
+  if (str.length) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
+  } else {
+    return '';
+  }
+}
+
+function getSong(band, callback) {
+    request.get({
+        url: 'https://api.spotify.com/v1/search',
+        qs: {
+            q: band,
+            type: 'artist,track'
+        }
+    },
+    function (error, response, body) {
+        body = JSON.parse(body);
+        callback(error, body);
+    });
+}
+
+function getVideos(artistName, callback) {
+    youtube.search.list({
+        part: 'snippet',
+        type: 'video',
+        order: 'viewCount',
+        maxResults: 3,
+        q: artistName,
+        key: process.env.YoutubeApiKey
+    }, function(error, request, response) {
+        callback(error, response.body.items);
+    });
+}
+
+
 module.exports = {
     searchEventByVenue: searchEventByVenue,
-    searchVenue: searchVenue
+    searchVenue: searchVenue,
+    ucFirst: ucFirst,
+    getSong: getSong,
+    getVideos: getVideos
 }
